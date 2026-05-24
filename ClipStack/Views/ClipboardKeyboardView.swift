@@ -1,3 +1,4 @@
+import AppKit
 import SwiftData
 import SwiftUI
 
@@ -6,7 +7,10 @@ struct ClipboardKeyboardView: View {
     @Query(sort: \ClipboardEntry.createdAt, order: .reverse) private var entries: [ClipboardEntry]
 
     @State private var searchText = ""
-    @State private var selectedEntryID: UUID?
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var activeID: UUID?
+    @State private var anchorID: UUID?
+    @State private var scrollTrigger: UUID?
     @FocusState private var focusTarget: FocusTarget?
 
     var onDismiss: () -> Void = {}
@@ -54,36 +58,47 @@ struct ClipboardKeyboardView: View {
                     ScrollView {
                         LazyVStack(spacing: RowLayout.inset) {
                             ForEach(filteredEntries) { entry in
-                                InsetSelectableRow(isSelected: selectedEntryID == entry.id) {
+                                InsetSelectableRow(
+                                    isSelected: selectedIDs.contains(entry.id),
+                                    isActive: activeID == entry.id
+                                ) {
                                     ClipboardKeyboardRow(entry: entry)
                                 }
                                 .id(entry.id)
+                                .contentShape(RoundedRectangle(cornerRadius: RowLayout.rowCornerRadius, style: .continuous))
                                 .onTapGesture {
-                                    selectedEntryID = entry.id
+                                    handleTap(on: entry.id)
                                 }
                             }
                         }
                         .padding(.horizontal, RowLayout.inset)
-                        .padding(.top, RowLayout.inset)
+                        .padding(.vertical, RowLayout.inset)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onChange(of: selectedEntryID) { _, newValue in
+                    .onChange(of: scrollTrigger) { _, newValue in
                         guard let newValue else { return }
                         withAnimation {
                             proxy.scrollTo(newValue, anchor: .center)
                         }
                     }
+                    .onReceive(NotificationCenter.default.publisher(for: .clipStackPanelDidShow)) { _ in
+                        guard let activeID else { return }
+                        DispatchQueue.main.async {
+                            proxy.scrollTo(activeID, anchor: .center)
+                        }
+                    }
                 }
             }
         }
-        .frame(width: 280, height: 400)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .focusable()
+        .focusEffectDisabled()
         .focused($focusTarget, equals: .panel)
         .keyboardNavigationHandlers(
-            onUp: { moveSelection(by: -1) },
-            onDown: { moveSelection(by: 1) },
+            onUp: { moveSelection(by: -1, modifiers: $0) },
+            onDown: { moveSelection(by: 1, modifiers: $0) },
             onEscape: onDismiss,
-            onReturn: copySelectedEntry
+            onReturn: copySelectedEntries
         )
         .ignoresSafeArea(.container)
         .onAppear { prepareForDisplay() }
@@ -91,11 +106,20 @@ struct ClipboardKeyboardView: View {
             prepareForDisplay()
         }
         .onChange(of: filteredEntries.map(\.id)) { _, ids in
-            if let selectedEntryID, ids.contains(selectedEntryID) { return }
-            selectedEntryID = ids.first
+            let visible = Set(ids)
+            selectedIDs.formIntersection(visible)
+            if let activeID, !visible.contains(activeID) {
+                self.activeID = ids.first
+                anchorID = ids.first
+                if let first = ids.first { selectedIDs = [first] }
+            } else if activeID == nil {
+                activeID = ids.first
+                anchorID = ids.first
+                if let first = ids.first { selectedIDs = [first] }
+            }
         }
         .background {
-            Button("", action: copySelectedEntry)
+            Button("", action: copySelectedEntries)
                 .keyboardShortcut("c", modifiers: .command)
                 .opacity(0)
                 .frame(width: 0, height: 0)
@@ -115,13 +139,13 @@ struct ClipboardKeyboardView: View {
                 .hideTextFieldFocusRing()
                 .focused($focusTarget, equals: .search)
                 .keyboardNavigationHandlers(
-                    onUp: { moveSelection(by: -1) },
-                    onDown: { moveSelection(by: 1) },
+                    onUp: { moveSelection(by: -1, modifiers: $0) },
+                    onDown: { moveSelection(by: 1, modifiers: $0) },
                     onEscape: onDismiss,
-                    onReturn: copySelectedEntry
+                    onReturn: copySelectedEntries
                 )
                 .onSubmit {
-                    copySelectedEntry()
+                    copySelectedEntries()
                 }
 
             if !searchText.isEmpty {
@@ -134,7 +158,7 @@ struct ClipboardKeyboardView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.leading, RowLayout.contentLeadingInset)
+        .padding(.leading, RowLayout.rowContentLeadingInset)
         .padding(.trailing, RowLayout.inset)
         .padding(.top, RowLayout.searchTopInset)
         .padding(.bottom, RowLayout.inset)
@@ -142,36 +166,120 @@ struct ClipboardKeyboardView: View {
 
     private func prepareForDisplay() {
         searchText = ""
-        selectedEntryID = filteredEntries.first?.id
+        let visibleIDs = filteredEntries.map(\.id)
+        let visibleSet = Set(visibleIDs)
+        if let activeID, visibleSet.contains(activeID) {
+            selectedIDs.formIntersection(visibleSet)
+            if selectedIDs.isEmpty { selectedIDs = [activeID] }
+            if anchorID == nil || !(anchorID.map(visibleSet.contains) ?? false) {
+                anchorID = activeID
+            }
+        } else {
+            let first = visibleIDs.first
+            activeID = first
+            anchorID = first
+            selectedIDs = first.map { [$0] } ?? []
+        }
         DispatchQueue.main.async {
             focusTarget = .search
         }
     }
 
-    private func copySelectedEntry() {
-        guard let selectedEntryID,
-              let entry = filteredEntries.first(where: { $0.id == selectedEntryID }) else {
-            return
+    private func copySelectedEntries() {
+        let ordered = filteredEntries.filter { selectedIDs.contains($0.id) }
+        let entriesToCopy: [ClipboardEntry]
+        if ordered.isEmpty, let activeID, let entry = filteredEntries.first(where: { $0.id == activeID }) {
+            entriesToCopy = [entry]
+        } else {
+            entriesToCopy = ordered
         }
-        ClipboardStore.shared.copyEntry(entry)
+        guard !entriesToCopy.isEmpty else { return }
+        ClipboardStore.shared.copyEntries(entriesToCopy)
         onDismiss()
     }
 
-    private func moveSelection(by offset: Int) {
+    private func handleTap(on id: UUID) {
+        let mods = NSEvent.modifierFlags
+        if mods.contains(.command) {
+            toggleSelection(id)
+        } else if mods.contains(.shift) {
+            extendSelection(to: id)
+        } else {
+            replaceSelection(with: id)
+        }
+    }
+
+    private func replaceSelection(with id: UUID) {
+        selectedIDs = [id]
+        activeID = id
+        anchorID = id
+    }
+
+    private func toggleSelection(_ id: UUID) {
+        if selectedIDs.contains(id) {
+            selectedIDs.remove(id)
+            if activeID == id {
+                activeID = selectedIDs.isEmpty ? nil : id
+            }
+        } else {
+            selectedIDs.insert(id)
+        }
+        activeID = id
+        anchorID = id
+    }
+
+    private func extendSelection(to id: UUID) {
+        let ids = filteredEntries.map(\.id)
+        guard let anchor = anchorID ?? activeID,
+              let anchorIndex = ids.firstIndex(of: anchor),
+              let targetIndex = ids.firstIndex(of: id) else {
+            replaceSelection(with: id)
+            return
+        }
+        let range = anchorIndex <= targetIndex
+            ? ids[anchorIndex...targetIndex]
+            : ids[targetIndex...anchorIndex]
+        selectedIDs = Set(range)
+        activeID = id
+    }
+
+    private func moveSelection(by offset: Int, modifiers: EventModifiers) {
         let ids = filteredEntries.map(\.id)
         guard !ids.isEmpty else { return }
 
-        if let selectedEntryID, let index = ids.firstIndex(of: selectedEntryID) {
-            let nextIndex = min(max(index + offset, 0), ids.count - 1)
-            self.selectedEntryID = ids[nextIndex]
+        let currentIndex: Int
+        if let activeID, let index = ids.firstIndex(of: activeID) {
+            currentIndex = index
         } else {
-            selectedEntryID = offset > 0 ? ids.first : ids.last
+            currentIndex = offset > 0 ? -1 : ids.count
         }
+
+        let nextIndex = min(max(currentIndex + offset, 0), ids.count - 1)
+        let nextID = ids[nextIndex]
+
+        if modifiers.contains(.shift) {
+            if anchorID == nil { anchorID = activeID ?? nextID }
+            activeID = nextID
+            if let anchor = anchorID, let anchorIndex = ids.firstIndex(of: anchor) {
+                let lower = min(anchorIndex, nextIndex)
+                let upper = max(anchorIndex, nextIndex)
+                selectedIDs = Set(ids[lower...upper])
+            } else {
+                selectedIDs = [nextID]
+            }
+        } else {
+            activeID = nextID
+            anchorID = nextID
+            selectedIDs = [nextID]
+        }
+
+        scrollTrigger = nextID
     }
 }
 
 private struct InsetSelectableRow<Content: View>: View {
     let isSelected: Bool
+    let isActive: Bool
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -181,7 +289,13 @@ private struct InsetSelectableRow<Content: View>: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: RowLayout.rowCornerRadius, style: .continuous)
-                        .fill(Color.accentColor.opacity(0.2))
+                        .fill(Color.accentColor.opacity(isActive ? 0.28 : 0.18))
+                }
+            }
+            .overlay {
+                if isActive && !isSelected {
+                    RoundedRectangle(cornerRadius: RowLayout.rowCornerRadius, style: .continuous)
+                        .stroke(Color.accentColor.opacity(0.5), lineWidth: 1)
                 }
             }
     }
@@ -204,11 +318,14 @@ private struct ClipboardKeyboardRow: View {
 private enum RowLayout {
     static let inset: CGFloat = 4
     static let searchTopInset: CGFloat = 28
-    static let rowCornerRadius: CGFloat = 8
+    static let rowCornerRadius: CGFloat = 12
     static let iconSize: CGFloat = 32
     static let iconTextSpacing: CGFloat = 10
 
-    static var contentLeadingInset: CGFloat {
-        inset + inset + inset
+    /// Leading offset that aligns the search icon with the icons inside list rows.
+    /// Rows live inside the LazyVStack (horizontal `inset` padding) and `InsetSelectableRow`
+    /// (additional `inset` padding), so their leading icon sits at `inset * 2`.
+    static var rowContentLeadingInset: CGFloat {
+        inset * 2
     }
 }

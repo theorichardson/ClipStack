@@ -26,7 +26,7 @@ struct ClipEntryLeadingIcon: View {
     }
 
     private var cornerRadius: CGFloat {
-        size <= 18 ? 4 : 6
+        8
     }
 
     private var symbolName: String {

@@ -2,27 +2,28 @@ import SwiftUI
 
 extension View {
     func keyboardNavigationHandlers(
-        onUp: @escaping () -> Void,
-        onDown: @escaping () -> Void,
+        onUp: @escaping (EventModifiers) -> Void,
+        onDown: @escaping (EventModifiers) -> Void,
         onEscape: @escaping () -> Void,
         onReturn: @escaping () -> Void
     ) -> some View {
-        self
-            .onKeyPress(.upArrow) {
-                onUp()
+        self.onKeyPress(phases: .down) { press in
+            switch press.key {
+            case .upArrow:
+                onUp(press.modifiers)
                 return .handled
-            }
-            .onKeyPress(.downArrow) {
-                onDown()
+            case .downArrow:
+                onDown(press.modifiers)
                 return .handled
-            }
-            .onKeyPress(.escape) {
+            case .escape:
                 onEscape()
                 return .handled
-            }
-            .onKeyPress(.return) {
+            case .return:
                 onReturn()
                 return .handled
+            default:
+                return .ignored
             }
+        }
     }
 }

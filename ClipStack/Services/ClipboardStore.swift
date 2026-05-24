@@ -67,6 +67,32 @@ final class ClipboardStore: ObservableObject {
         try? modelContext.save()
     }
 
+    func copyEntries(_ entries: [ClipboardEntry]) {
+        guard !entries.isEmpty else { return }
+        if entries.count == 1 {
+            copyEntry(entries[0])
+            return
+        }
+
+        let joined = entries
+            .map { entry -> String in
+                if let text = entry.textContent, !text.isEmpty { return text }
+                return entry.preview
+            }
+            .joined(separator: "\n")
+
+        let aggregate = ParsedClipboardItem(
+            contentType: .text,
+            textContent: joined,
+            imagePath: nil,
+            preview: joined,
+            source: .local,
+            sourceAppName: "ClipStack",
+            searchableText: joined
+        )
+        PasteboardMonitor.shared.copyToPasteboard(aggregate)
+    }
+
     func copyEntry(_ entry: ClipboardEntry) {
         let item = ParsedClipboardItem(
             contentType: entry.typedContentType,
