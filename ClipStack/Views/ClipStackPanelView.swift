@@ -125,7 +125,8 @@ struct ClipStackPanelView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.leading, 15)
+        .padding(.trailing, 16)
         .padding(.vertical, 12)
     }
 

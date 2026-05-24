@@ -34,8 +34,10 @@ struct ClipStackApp: App {
     }
 
     var body: some Scene {
+        // Settings are opened imperatively via SettingsWindowController because
+        // LSUIElement apps cannot reliably use SwiftUI's Settings scene from AppKit menus.
         Settings {
-            SettingsView()
+            EmptyView()
         }
     }
 }

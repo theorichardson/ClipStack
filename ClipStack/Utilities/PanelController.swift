@@ -24,11 +24,10 @@ final class PanelController: NSObject {
         }
     }
 
-    /// Builds and renders the panel off-screen so the first shortcut open does not flash.
+    /// Builds the panel without showing it. Rendering warm-up happens on first show.
     func prepare() {
         guard panel == nil else { return }
         buildPanel()
-        warmUpRendering()
     }
 
     func show() {

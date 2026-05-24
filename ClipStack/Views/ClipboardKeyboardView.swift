@@ -15,6 +15,7 @@ struct ClipboardKeyboardView: View {
     @State private var renameText = ""
     @State private var lastRowClickID: UUID?
     @State private var lastRowClickTime = Date.distantPast
+    @State private var lastKeyboardSelectionTime: Date?
     @FocusState private var focusTarget: FocusTarget?
     @FocusState private var isRenameFocused: Bool
 
@@ -35,6 +36,7 @@ struct ClipboardKeyboardView: View {
     }
 
     private let menuLimit = 30
+    private static let selectionRestoreInterval: TimeInterval = 30
 
     private var filteredEntries: [ClipboardEntry] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -219,7 +221,7 @@ struct ClipboardKeyboardView: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.leading, RowLayout.rowContentLeadingInset)
+        .padding(.leading, RowLayout.rowContentLeadingInset - 1)
         .padding(.trailing, RowLayout.inset)
         .padding(.top, RowLayout.searchTopInset)
         .padding(.bottom, RowLayout.inset)
@@ -230,13 +232,18 @@ struct ClipboardKeyboardView: View {
         searchText = ""
         let visibleIDs = filteredEntries.map(\.id)
         let visibleSet = Set(visibleIDs)
-        if let activeID, visibleSet.contains(activeID) {
+        let shouldRestoreSelection = lastKeyboardSelectionTime.map {
+            Date().timeIntervalSince($0) < Self.selectionRestoreInterval
+        } ?? false
+
+        if shouldRestoreSelection, let activeID, visibleSet.contains(activeID) {
             selectedIDs.formIntersection(visibleSet)
             if selectedIDs.isEmpty { selectedIDs = [activeID] }
             if anchorID == nil || !(anchorID.map(visibleSet.contains) ?? false) {
                 anchorID = activeID
             }
         } else {
+            lastKeyboardSelectionTime = nil
             let first = visibleIDs.first
             activeID = first
             anchorID = first
@@ -305,6 +312,7 @@ struct ClipboardKeyboardView: View {
     }
 
     private func handleTap(on id: UUID) {
+        lastKeyboardSelectionTime = nil
         let mods = NSEvent.modifierFlags
         if mods.contains(.command) {
             toggleSelection(id)
@@ -379,6 +387,7 @@ struct ClipboardKeyboardView: View {
             selectedIDs = [nextID]
         }
 
+        lastKeyboardSelectionTime = Date()
         scrollTrigger = nextID
     }
 }

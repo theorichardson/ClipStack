@@ -6,10 +6,12 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     static let shared = MenuBarController()
 
     private var statusItem: NSStatusItem?
+    private let menu = NSMenu()
     private let menuLimit = 25
 
     private override init() {
         super.init()
+        menu.delegate = self
     }
 
     func install() {
@@ -20,18 +22,16 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         )
         item.button?.image?.isTemplate = true
         statusItem = item
-        rebuildMenu()
+        statusItem?.menu = menu
+        populateMenu()
     }
 
     func menuWillOpen(_ menu: NSMenu) {
-        rebuildMenu()
+        populateMenu()
     }
 
-    private func rebuildMenu() {
-        guard let statusItem else { return }
-
-        let menu = NSMenu()
-        menu.delegate = self
+    private func populateMenu() {
+        menu.removeAllItems()
 
         let entries = fetchRecentEntries()
         let totalCount = fetchEntryCount()
@@ -89,8 +89,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         )
         quitItem.target = self
         menu.addItem(quitItem)
-
-        statusItem.menu = menu
     }
 
     private func fetchRecentEntries() -> [ClipboardEntry] {
@@ -128,21 +126,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     @objc private func openSettings(_ sender: NSMenuItem) {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
-            NSApp.windows.first(where: \.isSettingsWindow)?.makeKeyAndOrderFront(nil)
-        }
+        SettingsWindowController.shared.open()
     }
 
     @objc private func quit(_ sender: NSMenuItem) {
         NSApp.terminate(nil)
-    }
-}
-
-private extension NSWindow {
-    var isSettingsWindow: Bool {
-        title.localizedCaseInsensitiveContains("settings")
     }
 }
