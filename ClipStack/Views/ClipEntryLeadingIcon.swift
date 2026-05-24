@@ -4,10 +4,12 @@ import SwiftUI
 struct ClipEntryLeadingIcon: View {
     let entry: ClipboardEntry
     var size: CGFloat = 28
+    var showsImageThumbnail: Bool = true
 
     var body: some View {
         Group {
-            if entry.typedContentType == .image,
+            if showsImageThumbnail,
+               entry.typedContentType == .image,
                let path = entry.imagePath,
                let image = NSImage(contentsOfFile: path) {
                 Image(nsImage: image)
@@ -30,20 +32,7 @@ struct ClipEntryLeadingIcon: View {
     }
 
     private var symbolName: String {
-        if entry.typedSource == .universal {
-            return "iphone"
-        }
-
-        switch entry.typedContentType {
-        case .url:
-            return "link"
-        case .image:
-            return "photo"
-        case .file:
-            return "doc"
-        default:
-            return "text.alignleft"
-        }
+        entry.menuSymbolName
     }
 
     private var symbolColor: Color {

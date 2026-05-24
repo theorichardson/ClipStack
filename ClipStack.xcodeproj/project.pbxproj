@@ -17,10 +17,11 @@
 		4AD487E4BAF156C280059672 /* PasteboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F3CA1AD2F1332D79B48B79 /* PasteboardMonitor.swift */; };
 		661BE62CAE15AD29224B240B /* Date+ClipFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30229873C44CC54400D1C744 /* Date+ClipFormatting.swift */; };
 		707FD31FCF6D3C23A7F355CF /* HideTextFieldFocusRing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D9B634D8A7F81B967797A99 /* HideTextFieldFocusRing.swift */; };
-		8B5FABB878B975B7CC97BB49 /* MenuBarContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F7A6294D84D37C8247F1EB /* MenuBarContentView.swift */; };
 		B02B9169D696DB9DC4F1A4B8 /* KeyboardNavigationHandlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17889F6CA04E5C396C7D78F5 /* KeyboardNavigationHandlers.swift */; };
 		B280F9BB6AA2FC61001DD0DE /* ClipStackApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BBBBBD495A0F9541C454B71 /* ClipStackApp.swift */; };
 		C7BC139F7D407DB2F420D39B /* ClipStackPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6AABD00AEE073CAE9811EF /* ClipStackPanelView.swift */; };
+		D74F6EADD37B94B1E3F9F48C /* MenuBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBB29A6FBD2C5AAC2EC99CC /* MenuBarController.swift */; };
+		F02B889C81AF14139F96CE3C /* MenuBarMenuFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7769B5C7CC8850FFA503766 /* MenuBarMenuFormatting.swift */; };
 		F3646EF2FF0988FB75DE931F /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 5053D96CBC31A6AC04EE4F07 /* KeyboardShortcuts */; };
 		F51F6CCC9DE42E96DEBC4373 /* ClipboardKeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8086AC9C3F2CBC99D72C50 /* ClipboardKeyboardView.swift */; };
 /* End PBXBuildFile section */
@@ -33,10 +34,11 @@
 		44F3CA1AD2F1332D79B48B79 /* PasteboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteboardMonitor.swift; sourceTree = "<group>"; };
 		4AD33A9A1EA5E938B05C3DC9 /* ClipStack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClipStack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C8086AC9C3F2CBC99D72C50 /* ClipboardKeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardKeyboardView.swift; sourceTree = "<group>"; };
-		50F7A6294D84D37C8247F1EB /* MenuBarContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarContentView.swift; sourceTree = "<group>"; };
 		53E4436B40C55A08E5C97F5A /* AppModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelContainer.swift; sourceTree = "<group>"; };
 		5BBBBBD495A0F9541C454B71 /* ClipStackApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipStackApp.swift; sourceTree = "<group>"; };
 		5E6AABD00AEE073CAE9811EF /* ClipStackPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipStackPanelView.swift; sourceTree = "<group>"; };
+		7BBB29A6FBD2C5AAC2EC99CC /* MenuBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarController.swift; sourceTree = "<group>"; };
+		A7769B5C7CC8850FFA503766 /* MenuBarMenuFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarMenuFormatting.swift; sourceTree = "<group>"; };
 		AB7DE0331C0F453CDD3AC81C /* ClipStack.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ClipStack.entitlements; sourceTree = "<group>"; };
 		BB4E160D4DAE7C7F93BA103B /* ClipEntryLeadingIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEntryLeadingIcon.swift; sourceTree = "<group>"; };
 		C0A3A6CB12A150B55168B312 /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
@@ -63,6 +65,8 @@
 				53E4436B40C55A08E5C97F5A /* AppModelContainer.swift */,
 				30229873C44CC54400D1C744 /* Date+ClipFormatting.swift */,
 				C0A3A6CB12A150B55168B312 /* HotKeyManager.swift */,
+				7BBB29A6FBD2C5AAC2EC99CC /* MenuBarController.swift */,
+				A7769B5C7CC8850FFA503766 /* MenuBarMenuFormatting.swift */,
 				DDDB9D2C18D138F6E4748D1A /* PanelController.swift */,
 			);
 			path = Utilities;
@@ -77,7 +81,6 @@
 				5E6AABD00AEE073CAE9811EF /* ClipStackPanelView.swift */,
 				0D9B634D8A7F81B967797A99 /* HideTextFieldFocusRing.swift */,
 				17889F6CA04E5C396C7D78F5 /* KeyboardNavigationHandlers.swift */,
-				50F7A6294D84D37C8247F1EB /* MenuBarContentView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -200,7 +203,8 @@
 				707FD31FCF6D3C23A7F355CF /* HideTextFieldFocusRing.swift in Sources */,
 				48DF5A94E202473454236055 /* HotKeyManager.swift in Sources */,
 				B02B9169D696DB9DC4F1A4B8 /* KeyboardNavigationHandlers.swift in Sources */,
-				8B5FABB878B975B7CC97BB49 /* MenuBarContentView.swift in Sources */,
+				D74F6EADD37B94B1E3F9F48C /* MenuBarController.swift in Sources */,
+				F02B889C81AF14139F96CE3C /* MenuBarMenuFormatting.swift in Sources */,
 				37D6F3FC76FF24596F96AE08 /* PanelController.swift in Sources */,
 				4AD487E4BAF156C280059672 /* PasteboardMonitor.swift in Sources */,
 			);

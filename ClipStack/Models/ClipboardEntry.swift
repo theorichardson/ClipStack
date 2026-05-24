@@ -70,4 +70,28 @@ final class ClipboardEntry {
     var sourceSubtitle: String {
         "\(displaySourceApp) · \(createdAt.clipMenuTimestamp)"
     }
+
+    var menuSymbolName: String {
+        if typedSource == .universal {
+            return "iphone"
+        }
+
+        switch typedContentType {
+        case .url:
+            return "link"
+        case .image:
+            return "photo"
+        case .file:
+            return "doc"
+        default:
+            return "text.alignleft"
+        }
+    }
+
+    var menuPreview: String {
+        let singleLine = preview.replacingOccurrences(of: "\n", with: " ")
+        let maxLength = 48
+        guard singleLine.count > maxLength else { return singleLine }
+        return String(singleLine.prefix(maxLength - 1)) + "…"
+    }
 }

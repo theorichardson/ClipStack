@@ -1,3 +1,4 @@
+import AppKit
 import KeyboardShortcuts
 import SwiftUI
 
@@ -45,5 +46,8 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 440, height: 280)
         .padding()
+        .onAppear {
+            NSApp.activate(ignoringOtherApps: true)
+        }
     }
 }

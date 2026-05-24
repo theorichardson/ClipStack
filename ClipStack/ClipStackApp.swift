@@ -29,17 +29,10 @@ struct ClipStackApp: App {
             ClipboardStore.shared.add(item)
         }
         PasteboardMonitor.shared.start()
+        MenuBarController.shared.install()
     }
 
     var body: some Scene {
-        MenuBarExtra {
-            MenuBarContentView()
-                .modelContainer(modelContainer)
-        } label: {
-            Image(systemName: "doc.on.clipboard.fill")
-        }
-        .menuBarExtraStyle(.menu)
-
         Settings {
             SettingsView()
         }
