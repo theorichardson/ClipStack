@@ -171,7 +171,7 @@ struct ClipboardKeyboardView: View {
     }
 
     private var searchField: some View {
-        HStack(spacing: RowLayout.iconTextSpacing) {
+        HStack(spacing: RowLayout.searchIconTextSpacing) {
             Image(systemName: "magnifyingglass")
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -426,6 +426,7 @@ private enum RowLayout {
     static let rowCornerRadius: CGFloat = 12
     static let iconSize: CGFloat = 32
     static let iconTextSpacing: CGFloat = 10
+    static let searchIconTextSpacing: CGFloat = iconTextSpacing + 1
 
     /// Leading offset that aligns the search icon with the icons inside list rows.
     /// Rows live inside the LazyVStack (horizontal `inset` padding) and `InsetSelectableRow`

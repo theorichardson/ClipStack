@@ -15,6 +15,7 @@ final class MenuBarImageItemView: NSView {
 
     init(entry: ClipboardEntry, width: CGFloat) {
         super.init(frame: NSRect(x: 0, y: 0, width: width, height: Self.rowHeight(for: entry)))
+        autoresizingMask = [.width]
         configure(entry: entry)
         setupLayout()
     }
