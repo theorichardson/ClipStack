@@ -41,8 +41,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             emptyItem.isEnabled = false
             menu.addItem(emptyItem)
         } else {
+            let menuItemWidth = MenuBarMenuFormatting.preferredMenuItemWidth(for: entries)
+
             for entry in entries {
-                let item = MenuBarMenuFormatting.makeMenuItem(for: entry)
+                let item = MenuBarMenuFormatting.makeMenuItem(for: entry, menuItemWidth: menuItemWidth)
                 item.target = self
                 item.action = #selector(copyEntry(_:))
                 menu.addItem(item)

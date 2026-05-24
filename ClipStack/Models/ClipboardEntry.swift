@@ -23,6 +23,7 @@ final class ClipboardEntry {
     var textContent: String?
     var imagePath: String?
     var preview: String
+    var customTitle: String?
     var source: String
     var sourceAppName: String?
     var searchableText: String
@@ -34,6 +35,7 @@ final class ClipboardEntry {
         textContent: String? = nil,
         imagePath: String? = nil,
         preview: String,
+        customTitle: String? = nil,
         source: ClipboardSource,
         sourceAppName: String? = nil,
         searchableText: String
@@ -44,6 +46,7 @@ final class ClipboardEntry {
         self.textContent = textContent
         self.imagePath = imagePath
         self.preview = preview
+        self.customTitle = customTitle
         self.source = source.rawValue
         self.sourceAppName = sourceAppName
         self.searchableText = searchableText
@@ -71,6 +74,15 @@ final class ClipboardEntry {
         "\(displaySourceApp) · \(createdAt.clipMenuTimestamp)"
     }
 
+    var hasCustomTitle: Bool {
+        guard let customTitle else { return false }
+        return !customTitle.isEmpty
+    }
+
+    var listPreviewLineLimit: Int {
+        hasCustomTitle ? 1 : 2
+    }
+
     var menuSymbolName: String {
         if typedSource == .universal {
             return "iphone"
@@ -90,7 +102,7 @@ final class ClipboardEntry {
 
     var menuPreview: String {
         let singleLine = preview.replacingOccurrences(of: "\n", with: " ")
-        let maxLength = 48
+        let maxLength = hasCustomTitle ? 36 : 48
         guard singleLine.count > maxLength else { return singleLine }
         return String(singleLine.prefix(maxLength - 1)) + "…"
     }

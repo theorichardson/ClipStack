@@ -7,9 +7,23 @@ struct ClipStackPanelView: View {
 
     @State private var searchText = ""
     @State private var selectedEntryID: UUID?
+    @State private var renamingEntryID: UUID?
+    @State private var renameText = ""
+    @State private var lastRowClickID: UUID?
+    @State private var lastRowClickTime = Date.distantPast
     @FocusState private var isSearchFocused: Bool
+    @FocusState private var isRenameFocused: Bool
 
     let onClose: () -> Void
+
+    private var isRenaming: Bool {
+        renamingEntryID != nil
+    }
+
+    private var renamingEntry: ClipboardEntry? {
+        guard let renamingEntryID else { return nil }
+        return entries.first { $0.id == renamingEntryID }
+    }
 
     private var filteredEntries: [ClipboardEntry] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -18,6 +32,7 @@ struct ClipStackPanelView: View {
         return entries.filter { entry in
             entry.searchableText.localizedCaseInsensitiveContains(query)
                 || entry.preview.localizedCaseInsensitiveContains(query)
+                || (entry.customTitle?.localizedCaseInsensitiveContains(query) ?? false)
         }
     }
 
@@ -26,21 +41,41 @@ struct ClipStackPanelView: View {
             header
             Divider()
             content
+            if isRenaming, let entry = renamingEntry {
+                Divider()
+                ClipRenameBar(
+                    preview: entry.preview,
+                    renameText: $renameText,
+                    isFocused: $isRenameFocused,
+                    onSave: saveRename,
+                    onCancel: cancelRename
+                )
+            }
             Divider()
             footer
         }
         .frame(minWidth: 420, minHeight: 520)
         .onKeyPress(.upArrow) {
+            guard !isRenaming else { return .ignored }
             moveSelection(by: -1)
             return .handled
         }
         .onKeyPress(.downArrow) {
+            guard !isRenaming else { return .ignored }
             moveSelection(by: 1)
             return .handled
         }
         .onKeyPress(.return) {
+            guard !isRenaming else { return .ignored }
             copySelectedEntry()
             return .handled
+        }
+        .onKeyPress(.escape) {
+            if isRenaming {
+                cancelRename()
+                return .handled
+            }
+            return .ignored
         }
         .background {
             Button("", action: copySelectedEntry)
@@ -49,10 +84,14 @@ struct ClipStackPanelView: View {
                 .frame(width: 0, height: 0)
         }
         .onReceive(NotificationCenter.default.publisher(for: .clipStackPanelDidShow)) { _ in
+            cancelRename()
             isSearchFocused = true
             selectedEntryID = filteredEntries.first?.id
         }
         .onChange(of: filteredEntries.map(\.id)) { _, ids in
+            if let renamingEntryID, !ids.contains(renamingEntryID) {
+                cancelRename()
+            }
             if let selectedEntryID, ids.contains(selectedEntryID) {
                 return
             }
@@ -69,6 +108,7 @@ struct ClipStackPanelView: View {
                 .textFieldStyle(.plain)
                 .focused($isSearchFocused)
                 .onSubmit {
+                    guard !isRenaming else { return }
                     copySelectedEntry()
                 }
 
@@ -108,22 +148,26 @@ struct ClipStackPanelView: View {
                                 Button("Copy") {
                                     copy(entry)
                                 }
+                                Button("Rename") {
+                                    beginRename(entry)
+                                }
                                 Button("Delete", role: .destructive) {
                                     ClipboardStore.shared.delete(entry)
                                 }
                             }
-                            .onTapGesture(count: 2) {
-                                copy(entry)
-                                onClose()
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                handleRowClick(on: entry)
                             }
                     }
                 }
                 .listStyle(.plain)
                 .onChange(of: selectedEntryID) { _, newValue in
-                    guard let newValue else { return }
-                    withAnimation {
-                        proxy.scrollTo(newValue, anchor: .center)
+                    if let renamingEntryID, newValue != renamingEntryID {
+                        cancelRename()
                     }
+                    guard let newValue else { return }
+                    proxy.scrollTo(newValue, anchor: .center)
                 }
             }
         }
@@ -146,7 +190,7 @@ struct ClipStackPanelView: View {
                 copySelectedEntry()
             }
             .keyboardShortcut(.return, modifiers: [])
-            .disabled(selectedEntryID == nil)
+            .disabled(selectedEntryID == nil || isRenaming)
 
             Button("Close") {
                 onClose()
@@ -155,6 +199,50 @@ struct ClipStackPanelView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    private func handleRowClick(on entry: ClipboardEntry) {
+        let now = Date()
+        if lastRowClickID == entry.id,
+           now.timeIntervalSince(lastRowClickTime) < 0.35 {
+            beginRename(entry)
+            lastRowClickID = nil
+            lastRowClickTime = .distantPast
+            return
+        }
+
+        lastRowClickID = entry.id
+        lastRowClickTime = now
+        selectedEntryID = entry.id
+    }
+
+    private func beginRename(_ entry: ClipboardEntry) {
+        if let renamingEntryID, renamingEntryID != entry.id {
+            cancelRename()
+        }
+        renamingEntryID = entry.id
+        selectedEntryID = entry.id
+        renameText = entry.customTitle ?? ""
+        isRenameFocused = true
+    }
+
+    private func saveRename() {
+        guard let entry = renamingEntry else {
+            renamingEntryID = nil
+            renameText = ""
+            return
+        }
+
+        ClipboardStore.shared.rename(entry, to: renameText)
+        renamingEntryID = nil
+        renameText = ""
+        isRenameFocused = false
+    }
+
+    private func cancelRename() {
+        renamingEntryID = nil
+        renameText = ""
+        isRenameFocused = false
     }
 
     private func copySelectedEntry() {

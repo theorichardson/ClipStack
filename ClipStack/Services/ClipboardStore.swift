@@ -40,6 +40,14 @@ final class ClipboardStore: ObservableObject {
         try? modelContext.save()
     }
 
+    func rename(_ entry: ClipboardEntry, to title: String) {
+        guard let modelContext else { return }
+
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        entry.customTitle = trimmed.isEmpty ? nil : trimmed
+        try? modelContext.save()
+    }
+
     func delete(_ entry: ClipboardEntry) {
         guard let modelContext else { return }
 

@@ -11,13 +11,27 @@ struct ClipboardKeyboardView: View {
     @State private var activeID: UUID?
     @State private var anchorID: UUID?
     @State private var scrollTrigger: UUID?
+    @State private var renamingEntryID: UUID?
+    @State private var renameText = ""
+    @State private var lastRowClickID: UUID?
+    @State private var lastRowClickTime = Date.distantPast
     @FocusState private var focusTarget: FocusTarget?
+    @FocusState private var isRenameFocused: Bool
 
     var onDismiss: () -> Void = {}
 
     private enum FocusTarget {
         case search
         case panel
+    }
+
+    private var isRenaming: Bool {
+        renamingEntryID != nil
+    }
+
+    private var renamingEntry: ClipboardEntry? {
+        guard let renamingEntryID else { return nil }
+        return entries.first { $0.id == renamingEntryID }
     }
 
     private let menuLimit = 30
@@ -32,6 +46,7 @@ struct ClipboardKeyboardView: View {
             matches = entries.filter { entry in
                 entry.searchableText.localizedCaseInsensitiveContains(query)
                     || entry.preview.localizedCaseInsensitiveContains(query)
+                    || (entry.customTitle?.localizedCaseInsensitiveContains(query) ?? false)
                     || entry.displaySourceApp.localizedCaseInsensitiveContains(query)
             }
         }
@@ -67,7 +82,7 @@ struct ClipboardKeyboardView: View {
                                 .id(entry.id)
                                 .contentShape(RoundedRectangle(cornerRadius: RowLayout.rowCornerRadius, style: .continuous))
                                 .onTapGesture {
-                                    handleTap(on: entry.id)
+                                    handleRowClick(on: entry)
                                 }
                             }
                         }
@@ -77,9 +92,7 @@ struct ClipboardKeyboardView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .onChange(of: scrollTrigger) { _, newValue in
                         guard let newValue else { return }
-                        withAnimation {
-                            proxy.scrollTo(newValue, anchor: .center)
-                        }
+                        proxy.scrollTo(newValue, anchor: .center)
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .clipStackPanelDidShow)) { _ in
                         guard let activeID else { return }
@@ -89,6 +102,17 @@ struct ClipboardKeyboardView: View {
                     }
                 }
             }
+
+            if isRenaming, let entry = renamingEntry {
+                Divider()
+                ClipRenameBar(
+                    preview: entry.preview,
+                    renameText: $renameText,
+                    isFocused: $isRenameFocused,
+                    onSave: saveRename,
+                    onCancel: cancelRename
+                )
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .focusable()
@@ -97,16 +121,33 @@ struct ClipboardKeyboardView: View {
         .keyboardNavigationHandlers(
             onUp: { moveSelection(by: -1, modifiers: $0) },
             onDown: { moveSelection(by: 1, modifiers: $0) },
-            onEscape: onDismiss,
-            onReturn: copySelectedEntries
+            onEscape: {
+                if isRenaming {
+                    cancelRename()
+                    return
+                }
+                onDismiss()
+            },
+            onReturn: {
+                guard !isRenaming else { return }
+                copySelectedEntries()
+            }
         )
         .ignoresSafeArea(.container)
         .onAppear { prepareForDisplay() }
         .onReceive(NotificationCenter.default.publisher(for: .clipStackPanelDidShow)) { _ in
             prepareForDisplay()
         }
+        .onChange(of: activeID) { _, newValue in
+            if let renamingEntryID, newValue != renamingEntryID {
+                cancelRename()
+            }
+        }
         .onChange(of: filteredEntries.map(\.id)) { _, ids in
             let visible = Set(ids)
+            if let renamingEntryID, !visible.contains(renamingEntryID) {
+                cancelRename()
+            }
             selectedIDs.formIntersection(visible)
             if let activeID, !visible.contains(activeID) {
                 self.activeID = ids.first
@@ -141,10 +182,20 @@ struct ClipboardKeyboardView: View {
                 .keyboardNavigationHandlers(
                     onUp: { moveSelection(by: -1, modifiers: $0) },
                     onDown: { moveSelection(by: 1, modifiers: $0) },
-                    onEscape: onDismiss,
-                    onReturn: copySelectedEntries
+                    onEscape: {
+                        if isRenaming {
+                            cancelRename()
+                            return
+                        }
+                        onDismiss()
+                    },
+                    onReturn: {
+                        guard !isRenaming else { return }
+                        copySelectedEntries()
+                    }
                 )
                 .onSubmit {
+                    guard !isRenaming else { return }
                     copySelectedEntries()
                 }
 
@@ -165,6 +216,7 @@ struct ClipboardKeyboardView: View {
     }
 
     private func prepareForDisplay() {
+        cancelRename()
         searchText = ""
         let visibleIDs = filteredEntries.map(\.id)
         let visibleSet = Set(visibleIDs)
@@ -183,6 +235,50 @@ struct ClipboardKeyboardView: View {
         DispatchQueue.main.async {
             focusTarget = .search
         }
+    }
+
+    private func handleRowClick(on entry: ClipboardEntry) {
+        let now = Date()
+        if lastRowClickID == entry.id,
+           now.timeIntervalSince(lastRowClickTime) < 0.35 {
+            beginRename(entry)
+            lastRowClickID = nil
+            lastRowClickTime = .distantPast
+            return
+        }
+
+        lastRowClickID = entry.id
+        lastRowClickTime = now
+        handleTap(on: entry.id)
+    }
+
+    private func beginRename(_ entry: ClipboardEntry) {
+        if let renamingEntryID, renamingEntryID != entry.id {
+            cancelRename()
+        }
+        renamingEntryID = entry.id
+        renameText = entry.customTitle ?? ""
+        replaceSelection(with: entry.id)
+        isRenameFocused = true
+    }
+
+    private func saveRename() {
+        guard let entry = renamingEntry else {
+            renamingEntryID = nil
+            renameText = ""
+            return
+        }
+
+        ClipboardStore.shared.rename(entry, to: renameText)
+        renamingEntryID = nil
+        renameText = ""
+        isRenameFocused = false
+    }
+
+    private func cancelRename() {
+        renamingEntryID = nil
+        renameText = ""
+        isRenameFocused = false
     }
 
     private func copySelectedEntries() {
