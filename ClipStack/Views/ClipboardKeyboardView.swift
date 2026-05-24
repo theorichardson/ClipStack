@@ -115,6 +115,7 @@ struct ClipboardKeyboardView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(nsColor: .windowBackgroundColor))
         .focusable()
         .focusEffectDisabled()
         .focused($focusTarget, equals: .panel)

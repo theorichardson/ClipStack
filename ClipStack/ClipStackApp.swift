@@ -30,6 +30,7 @@ struct ClipStackApp: App {
         }
         PasteboardMonitor.shared.start()
         MenuBarController.shared.install()
+        PanelController.shared.prepare()
     }
 
     var body: some Scene {

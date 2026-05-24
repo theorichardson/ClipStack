@@ -24,19 +24,31 @@ final class PanelController: NSObject {
         }
     }
 
+    /// Builds and renders the panel off-screen so the first shortcut open does not flash.
+    func prepare() {
+        guard panel == nil else { return }
+        buildPanel()
+        warmUpRendering()
+    }
+
     func show() {
         if panel == nil {
             buildPanel()
+            warmUpRendering()
         }
 
-        guard let panel else { return }
+        guard let panel, let hostingView else { return }
 
         positionPanel(panel)
+
+        panel.alphaValue = 0
+        panel.orderFrontRegardless()
+        hostingView.layoutSubtreeIfNeeded()
+        panel.displayIfNeeded()
+        panel.alphaValue = 1
+
         panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        if let hostingView {
-            panel.makeFirstResponder(hostingView)
-        }
+        panel.makeFirstResponder(hostingView)
 
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .clipStackPanelDidShow, object: nil)
@@ -50,7 +62,7 @@ final class PanelController: NSObject {
     private func buildPanel() {
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 280, height: 400),
-            styleMask: [.titled, .closable, .fullSizeContentView],
+            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
@@ -64,6 +76,7 @@ final class PanelController: NSObject {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.isMovableByWindowBackground = false
         panel.isMovable = true
+        panel.animationBehavior = .none
         panel.backgroundColor = .windowBackgroundColor
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
@@ -80,10 +93,24 @@ final class PanelController: NSObject {
         hostingView.frame = panel.contentView?.bounds ?? .zero
         hostingView.autoresizingMask = [.width, .height]
         hostingView.translatesAutoresizingMaskIntoConstraints = true
+        hostingView.wantsLayer = true
+        hostingView.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         panel.contentView = hostingView
 
         self.panel = panel
         self.hostingView = hostingView
+    }
+
+    private func warmUpRendering() {
+        guard let panel, let hostingView else { return }
+
+        panel.alphaValue = 0
+        panel.setFrameOrigin(NSPoint(x: -20000, y: -20000))
+        panel.orderFrontRegardless()
+        hostingView.layoutSubtreeIfNeeded()
+        panel.displayIfNeeded()
+        panel.orderOut(nil)
+        panel.alphaValue = 1
     }
 
     private func positionPanel(_ panel: NSPanel) {
