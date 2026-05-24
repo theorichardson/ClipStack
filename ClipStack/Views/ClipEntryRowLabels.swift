@@ -11,22 +11,30 @@ struct ClipEntryRowLabels: View {
                 .font(.body)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+            ClipEntryMetadataRow(entry: entry)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct ClipEntryMetadataRow: View {
+    let entry: ClipboardEntry
+
+    var body: some View {
+        HStack(spacing: 0) {
             if entry.hasCustomTitle, let customTitle = entry.customTitle {
                 Text(customTitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(" · ")
+                    .fixedSize(horizontal: true, vertical: false)
             }
 
             Text(entry.sourceSubtitle)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: true, vertical: false)
         }
+        .font(.caption)
+        .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

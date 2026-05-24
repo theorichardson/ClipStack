@@ -129,7 +129,10 @@ struct ClipboardKeyboardView: View {
                 onDismiss()
             },
             onReturn: {
-                guard !isRenaming else { return }
+                if isRenaming {
+                    saveRename()
+                    return
+                }
                 copySelectedEntries()
             }
         )
@@ -190,12 +193,18 @@ struct ClipboardKeyboardView: View {
                         onDismiss()
                     },
                     onReturn: {
-                        guard !isRenaming else { return }
+                        if isRenaming {
+                            saveRename()
+                            return
+                        }
                         copySelectedEntries()
                     }
                 )
                 .onSubmit {
-                    guard !isRenaming else { return }
+                    if isRenaming {
+                        saveRename()
+                        return
+                    }
                     copySelectedEntries()
                 }
 

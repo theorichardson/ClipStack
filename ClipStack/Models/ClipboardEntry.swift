@@ -80,7 +80,7 @@ final class ClipboardEntry {
     }
 
     var listPreviewLineLimit: Int {
-        hasCustomTitle ? 1 : 2
+        2
     }
 
     var menuSymbolName: String {
@@ -102,7 +102,7 @@ final class ClipboardEntry {
 
     var menuPreview: String {
         let singleLine = preview.replacingOccurrences(of: "\n", with: " ")
-        let maxLength = hasCustomTitle ? 36 : 48
+        let maxLength = 48
         guard singleLine.count > maxLength else { return singleLine }
         return String(singleLine.prefix(maxLength - 1)) + "…"
     }

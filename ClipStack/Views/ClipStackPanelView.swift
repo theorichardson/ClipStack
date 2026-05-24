@@ -66,7 +66,10 @@ struct ClipStackPanelView: View {
             return .handled
         }
         .onKeyPress(.return) {
-            guard !isRenaming else { return .ignored }
+            if isRenaming {
+                saveRename()
+                return .handled
+            }
             copySelectedEntry()
             return .handled
         }

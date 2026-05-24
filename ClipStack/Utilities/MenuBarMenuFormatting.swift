@@ -14,10 +14,7 @@ enum MenuBarMenuFormatting {
         }.max() ?? 0
 
         let maxMetadataWidth = entries.map { entry in
-            let lines = metadataLines(for: entry)
-            return lines.map {
-                ($0 as NSString).size(withAttributes: [.font: subtitleFont]).width
-            }.max() ?? 0
+            (inlineMetadata(for: entry) as NSString).size(withAttributes: [.font: subtitleFont]).width
         }.max() ?? 0
 
         let textWidth = max(maxTitleWidth, maxMetadataWidth)
@@ -40,30 +37,60 @@ enum MenuBarMenuFormatting {
         }
 
         item.image = leadingIcon(for: entry)
-        item.attributedTitle = attributedTextTitle(for: entry)
+        item.attributedTitle = attributedTextTitle(for: entry, menuItemWidth: menuItemWidth)
         return item
     }
 
-    private static func attributedTextTitle(for entry: ClipboardEntry) -> NSAttributedString {
-        let metadataLines = metadataLines(for: entry)
-        let body = ([entry.menuPreview] + metadataLines).joined(separator: "\n")
+    private static func attributedTextTitle(for entry: ClipboardEntry, menuItemWidth: CGFloat) -> NSAttributedString {
+        let metadata = inlineMetadata(for: entry, maxTextWidth: textAreaWidth(for: menuItemWidth))
+        let body = [entry.menuPreview, metadata].joined(separator: "\n")
         let attributed = NSMutableAttributedString(string: body)
-        let metadata = metadataLines.joined(separator: "\n")
         applySubtitleStyle(to: attributed, subtitle: metadata)
         return attributed
     }
 
-    private static func metadataLines(for entry: ClipboardEntry) -> [String] {
-        var lines: [String] = []
-        if entry.hasCustomTitle, let customTitle = entry.customTitle {
-            lines.append(customTitle)
-        }
-        lines.append(entry.sourceSubtitle)
-        return lines
+    private static func inlineMetadata(for entry: ClipboardEntry, maxTextWidth: CGFloat? = nil) -> String {
+        let suffix = entry.sourceSubtitle
+        guard entry.hasCustomTitle, let customTitle = entry.customTitle else { return suffix }
+
+        let separator = " · "
+        let suffixPart = separator + suffix
+        let full = customTitle + suffixPart
+
+        guard let maxTextWidth else { return full }
+
+        let font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize - 1)
+        let fullWidth = (full as NSString).size(withAttributes: [.font: font]).width
+        if fullWidth <= maxTextWidth { return full }
+
+        let suffixWidth = (suffixPart as NSString).size(withAttributes: [.font: font]).width
+        let availablePrefixWidth = max(maxTextWidth - suffixWidth, 0)
+        let truncatedTitle = truncateTail(customTitle, toWidth: availablePrefixWidth, font: font)
+        return truncatedTitle + suffixPart
     }
 
-    private static func metadataText(for entry: ClipboardEntry) -> String {
-        metadataLines(for: entry).joined(separator: "\n")
+    private static func truncateTail(_ string: String, toWidth maxWidth: CGFloat, font: NSFont) -> String {
+        guard !string.isEmpty else { return "" }
+        guard (string as NSString).size(withAttributes: [.font: font]).width > maxWidth else { return string }
+
+        var result = string
+        while result.count > 1,
+              (result as NSString).size(withAttributes: [.font: font]).width > maxWidth {
+            result = String(result.dropLast())
+        }
+
+        guard result.count < string.count else { return result }
+
+        while result.count > 1,
+              ((result + "…") as NSString).size(withAttributes: [.font: font]).width > maxWidth {
+            result = String(result.dropLast())
+        }
+
+        return result + "…"
+    }
+
+    private static func textAreaWidth(for menuItemWidth: CGFloat) -> CGFloat {
+        menuItemWidth - 18 - 8 - 18 - 8 - thumbnailSize - 14
     }
 
     private static func applySubtitleStyle(to attributed: NSMutableAttributedString, subtitle: String) {

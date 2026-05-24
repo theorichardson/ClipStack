@@ -17,6 +17,10 @@ struct ClipRenameBar: View {
                     .hideTextFieldFocusRing()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .onSubmit(onSave)
+                    .onKeyPress(.return) {
+                        onSave()
+                        return .handled
+                    }
                     .onKeyPress(.escape) {
                         onCancel()
                         return .handled

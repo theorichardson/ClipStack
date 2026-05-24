@@ -2,12 +2,13 @@ import AppKit
 
 final class MenuBarImageItemView: NSView {
     static func rowHeight(for entry: ClipboardEntry) -> CGFloat {
-        entry.hasCustomTitle ? 46 : 34
+        34
     }
 
     private let iconView = NSImageView()
     private let titleField = NSTextField(labelWithString: "")
     private let customTitleField = NSTextField(labelWithString: "")
+    private let metadataSuffixField = NSTextField(labelWithString: "")
     private let sourceSubtitleField = NSTextField(labelWithString: "")
     private let thumbnailView = NSImageView()
     private var showsCustomTitle = false
@@ -51,6 +52,12 @@ final class MenuBarImageItemView: NSView {
             color: .secondaryLabelColor
         )
         configureLabel(
+            metadataSuffixField,
+            value: " · \(entry.sourceSubtitle)",
+            font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
+            color: .secondaryLabelColor
+        )
+        configureLabel(
             sourceSubtitleField,
             value: entry.sourceSubtitle,
             font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
@@ -59,6 +66,8 @@ final class MenuBarImageItemView: NSView {
 
         showsCustomTitle = entry.hasCustomTitle
         customTitleField.isHidden = !showsCustomTitle
+        metadataSuffixField.isHidden = !showsCustomTitle
+        sourceSubtitleField.isHidden = showsCustomTitle
 
         if let path = entry.imagePath, let image = NSImage(contentsOfFile: path) {
             thumbnailView.image = MenuBarMenuFormatting.thumbnailImage(from: image)
@@ -68,7 +77,7 @@ final class MenuBarImageItemView: NSView {
         thumbnailView.layer?.cornerRadius = 5
         thumbnailView.layer?.masksToBounds = true
 
-        for view in [iconView, titleField, customTitleField, sourceSubtitleField, thumbnailView] {
+        for view in [iconView, titleField, customTitleField, metadataSuffixField, sourceSubtitleField, thumbnailView] {
             addSubview(view)
         }
     }
@@ -90,15 +99,19 @@ final class MenuBarImageItemView: NSView {
         field.lineBreakMode = .byTruncatingTail
         field.usesSingleLineMode = true
         field.cell?.truncatesLastVisibleLine = true
-        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     }
 
     private func setupLayout() {
-        for view in [iconView, titleField, customTitleField, sourceSubtitleField, thumbnailView] {
+        for view in [iconView, titleField, customTitleField, metadataSuffixField, sourceSubtitleField, thumbnailView] {
             view.translatesAutoresizingMaskIntoConstraints = false
         }
 
-        let metadataAnchor = showsCustomTitle ? customTitleField.bottomAnchor : titleField.bottomAnchor
+        customTitleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        customTitleField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        metadataSuffixField.setContentCompressionResistancePriority(.required, for: .horizontal)
+        metadataSuffixField.setContentHuggingPriority(.required, for: .horizontal)
+        sourceSubtitleField.setContentCompressionResistancePriority(.required, for: .horizontal)
+        sourceSubtitleField.setContentHuggingPriority(.required, for: .horizontal)
 
         NSLayoutConstraint.activate([
             iconView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18),
@@ -116,12 +129,15 @@ final class MenuBarImageItemView: NSView {
             titleField.topAnchor.constraint(equalTo: topAnchor, constant: 3),
 
             customTitleField.leadingAnchor.constraint(equalTo: titleField.leadingAnchor),
-            customTitleField.trailingAnchor.constraint(equalTo: titleField.trailingAnchor),
             customTitleField.topAnchor.constraint(equalTo: titleField.bottomAnchor, constant: -2),
 
+            metadataSuffixField.leadingAnchor.constraint(equalTo: customTitleField.trailingAnchor),
+            metadataSuffixField.trailingAnchor.constraint(lessThanOrEqualTo: thumbnailView.leadingAnchor, constant: -8),
+            metadataSuffixField.centerYAnchor.constraint(equalTo: customTitleField.centerYAnchor),
+
             sourceSubtitleField.leadingAnchor.constraint(equalTo: titleField.leadingAnchor),
-            sourceSubtitleField.trailingAnchor.constraint(equalTo: titleField.trailingAnchor),
-            sourceSubtitleField.topAnchor.constraint(equalTo: metadataAnchor, constant: -2),
+            sourceSubtitleField.trailingAnchor.constraint(lessThanOrEqualTo: thumbnailView.leadingAnchor, constant: -8),
+            sourceSubtitleField.topAnchor.constraint(equalTo: titleField.bottomAnchor, constant: -2),
         ])
     }
 
@@ -129,6 +145,9 @@ final class MenuBarImageItemView: NSView {
         let highlighted = enclosingMenuItem?.isHighlighted == true
         titleField.textColor = highlighted ? .selectedMenuItemTextColor : .labelColor
         customTitleField.textColor = highlighted
+            ? NSColor.selectedMenuItemTextColor.withAlphaComponent(0.65)
+            : .secondaryLabelColor
+        metadataSuffixField.textColor = highlighted
             ? NSColor.selectedMenuItemTextColor.withAlphaComponent(0.65)
             : .secondaryLabelColor
         sourceSubtitleField.textColor = highlighted
