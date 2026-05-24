@@ -1,0 +1,33 @@
+---
+description: After app code changes, quit ClipStack, rebuild, and relaunch
+alwaysApply: true
+---
+
+# Rebuild and Launch After App Changes
+
+When a turn modifies ClipStack app code or project files (Swift sources, entitlements, Xcode project, etc.), finish the turn by quitting, rebuilding, and launching the app.
+
+## When to run
+
+Run this workflow when the turn changes anything that affects the running app binary, including:
+- Swift source under `ClipStack/`
+- `ClipStack.xcodeproj/`
+- Entitlements, Info.plist, or other app bundle config
+
+Skip when the turn is read-only (questions, reviews, docs-only) or touches only non-app files (e.g. README).
+
+## Commands
+
+Run from the repo root:
+
+```bash
+pkill -x ClipStack 2>/dev/null || true
+sleep 0.5
+cd /Users/theorichardson/Projects/ClipStack
+xcodebuild -scheme ClipStack -destination 'platform=macOS' build
+open "$(xcodebuild -scheme ClipStack -destination 'platform=macOS' -showBuildSettings 2>/dev/null | awk -F' = ' '/^    BUILT_PRODUCTS_DIR / {print $2; exit}')/ClipStack.app"
+```
+
+If the build fails, report the failure and do not launch.
+
+Briefly confirm in the response that ClipStack was quit, rebuilt, and relaunched.
