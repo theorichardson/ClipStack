@@ -31,10 +31,15 @@ targets:
         INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Theodore Richardson. All rights reserved."
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
         INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
+        INFOPLIST_KEY_NSAccessibilityUsageDescription: ClipStack needs Accessibility access to read and resize other app windows.
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: ClipStack/ClipStack.entitlements
         CODE_SIGN_STYLE: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_STRICT_CONCURRENCY: complete
+        ENABLE_DEBUG_DYLIB: NO
+        ENABLE_PREVIEWS: NO
     dependencies:
       - package: KeyboardShortcuts
+      - sdk: ScreenCaptureKit.framework
+      - sdk: AVFoundation.framework
