@@ -355,34 +355,35 @@ private struct InsetSelectableRow<Content: View>: View {
         content()
             .padding(RowLayout.inset)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .allowsHitTesting(false)
             .background {
-                rowShape.fill(rowBackgroundColor)
+                ZStack {
+                    rowShape.fill(rowBackgroundColor)
+
+                    RowClickHandler(
+                        isHovered: $isHovered,
+                        onSingleClick: onSingleClick,
+                        onDoubleClick: onDoubleClick
+                    )
+                }
             }
             .overlay {
                 if isActive && !isSelected {
                     rowShape.stroke(Color.accentColor.opacity(0.5), lineWidth: 1)
+                        .allowsHitTesting(false)
                 }
             }
-            .contentShape(rowShape)
-            .onHover { hovering in
-                isHovered = hovering
-                if hovering {
-                    NSCursor.dragCopy.push()
-                } else {
-                    NSCursor.pop()
-                }
-            }
-            .onRowClick(single: onSingleClick, double: onDoubleClick)
     }
 
     private var rowBackgroundColor: Color {
         if isSelected {
-            Color.accentColor.opacity(isActive ? 0.28 : 0.18)
-        } else if isHovered {
-            Color.accentColor.opacity(0.08)
-        } else {
-            Color.clear
+            let baseOpacity = isActive ? 0.28 : 0.18
+            return Color.accentColor.opacity(isHovered ? baseOpacity + 0.06 : baseOpacity)
         }
+        if isHovered {
+            return Color.accentColor.opacity(0.08)
+        }
+        return Color.clear
     }
 }
 
