@@ -76,7 +76,7 @@ struct ClipEntryLeadingIcon: View {
                 .resizable()
                 .interpolation(.high)
                 .frame(width: badgeSize, height: badgeSize)
-                .offset(x: badgeSize * 0.25, y: badgeSize * 0.25)
+                .offset(x: badgeSize * 0.25 - 4, y: badgeSize * 0.25 - 4)
                 .allowsHitTesting(false)
         }
     }
