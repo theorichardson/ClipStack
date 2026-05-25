@@ -21,6 +21,7 @@ final class ClipboardStore: ObservableObject {
             duplicate.createdAt = .now
             duplicate.source = item.source.rawValue
             duplicate.sourceAppName = item.sourceAppName
+            duplicate.sourceAppBundleID = item.sourceAppBundleID
             try? modelContext.save()
             return
         }
@@ -32,6 +33,7 @@ final class ClipboardStore: ObservableObject {
             preview: item.preview,
             source: item.source,
             sourceAppName: item.sourceAppName,
+            sourceAppBundleID: item.sourceAppBundleID,
             searchableText: item.searchableText
         )
 
@@ -96,6 +98,7 @@ final class ClipboardStore: ObservableObject {
             preview: joined,
             source: .local,
             sourceAppName: "ClipStack",
+            sourceAppBundleID: Bundle.main.bundleIdentifier,
             searchableText: joined
         )
         PasteboardMonitor.shared.copyToPasteboard(aggregate)
@@ -109,6 +112,7 @@ final class ClipboardStore: ObservableObject {
             preview: entry.preview,
             source: entry.typedSource,
             sourceAppName: entry.sourceAppName ?? "",
+            sourceAppBundleID: entry.sourceAppBundleID,
             searchableText: entry.searchableText
         )
         PasteboardMonitor.shared.copyToPasteboard(item)

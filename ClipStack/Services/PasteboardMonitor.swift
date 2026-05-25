@@ -93,13 +93,44 @@ final class PasteboardMonitor: ObservableObject {
         let types = Set(pasteboard.types ?? [])
         let isUniversal = types.contains(Self.remoteClipboardType) || types.contains(Self.handoffType)
         let source: ClipboardSource = isUniversal ? .universal : .local
-        let sourceAppName = Self.sourceAppName(isUniversal: isUniversal)
+        let origin = Self.sourceAppOrigin(isUniversal: isUniversal)
+        let sourceAppName = origin.name
+        let sourceAppBundleID = origin.bundleID
+
+        if let image = NSImage(pasteboard: pasteboard) {
+            let imagePath = Self.storeImage(image)
+            return ParsedClipboardItem(
+                contentType: .image,
+                textContent: nil,
+                imagePath: imagePath,
+                preview: "Image",
+                source: source,
+                sourceAppName: sourceAppName,
+                sourceAppBundleID: sourceAppBundleID,
+                searchableText: "image photo picture \(sourceAppName)"
+            )
+        }
 
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
            let fileURL = urls.first,
            urls.count == 1,
            fileURL.isFileURL {
             let path = fileURL.path
+            if ClipEntryThumbnail.isVisualMediaPath(path),
+               let image = NSImage(contentsOf: fileURL),
+               let imagePath = Self.storeImage(image) {
+                return ParsedClipboardItem(
+                    contentType: .image,
+                    textContent: nil,
+                    imagePath: imagePath,
+                    preview: fileURL.lastPathComponent,
+                    source: source,
+                    sourceAppName: sourceAppName,
+                    sourceAppBundleID: sourceAppBundleID,
+                    searchableText: "\(path) image photo picture \(sourceAppName)"
+                )
+            }
+
             return ParsedClipboardItem(
                 contentType: .file,
                 textContent: path,
@@ -107,6 +138,7 @@ final class PasteboardMonitor: ObservableObject {
                 preview: fileURL.lastPathComponent,
                 source: source,
                 sourceAppName: sourceAppName,
+                sourceAppBundleID: sourceAppBundleID,
                 searchableText: "\(path) \(sourceAppName)"
             )
         }
@@ -127,31 +159,21 @@ final class PasteboardMonitor: ObservableObject {
                 preview: Self.preview(for: string),
                 source: source,
                 sourceAppName: sourceAppName,
+                sourceAppBundleID: sourceAppBundleID,
                 searchableText: "\(string) \(sourceAppName)"
-            )
-        }
-
-        if let image = NSImage(pasteboard: pasteboard) {
-            let imagePath = Self.storeImage(image)
-            return ParsedClipboardItem(
-                contentType: .image,
-                textContent: nil,
-                imagePath: imagePath,
-                preview: "Image",
-                source: source,
-                sourceAppName: sourceAppName,
-                searchableText: "image photo picture \(sourceAppName)"
             )
         }
 
         return nil
     }
 
-    private static func sourceAppName(isUniversal: Bool) -> String {
+    private static func sourceAppOrigin(isUniversal: Bool) -> (name: String, bundleID: String?) {
         if isUniversal {
-            return "iPhone"
+            return ("iPhone", nil)
         }
-        return NSWorkspace.shared.frontmostApplication?.localizedName ?? "Unknown"
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        let name = frontmost?.localizedName ?? "Unknown"
+        return (name, frontmost?.bundleIdentifier)
     }
 
     private static func preview(for text: String) -> String {
@@ -163,8 +185,16 @@ final class PasteboardMonitor: ObservableObject {
     }
 
     private static func storeImage(_ image: NSImage) -> String? {
-        guard let tiff = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiff),
+        let bitmap: NSBitmapImageRep?
+        if let tiff = image.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff) {
+            bitmap = rep
+        } else if let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            bitmap = NSBitmapImageRep(cgImage: cgImage)
+        } else {
+            bitmap = nil
+        }
+
+        guard let bitmap,
               let png = bitmap.representation(using: .png, properties: [:]) else {
             return nil
         }
@@ -191,6 +221,7 @@ struct ParsedClipboardItem: Sendable {
     let preview: String
     let source: ClipboardSource
     let sourceAppName: String
+    let sourceAppBundleID: String?
     let searchableText: String
 }
 

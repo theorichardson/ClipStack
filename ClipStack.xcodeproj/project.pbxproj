@@ -27,6 +27,7 @@
 		48DF5A94E202473454236055 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A3A6CB12A150B55168B312 /* HotKeyManager.swift */; };
 		4ACE22E4A43D6D22A2F54FEA /* sequoia-sunrise.png in Resources */ = {isa = PBXBuildFile; fileRef = 57AF0CA47B5466F4BECE8D17 /* sequoia-sunrise.png */; };
 		4AD487E4BAF156C280059672 /* PasteboardMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44F3CA1AD2F1332D79B48B79 /* PasteboardMonitor.swift */; };
+		56D9CBD1DB0F5EF1DB699E80 /* AppIconResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C5BC8040E4331D37B8ECF67 /* AppIconResolver.swift */; };
 		63A861CE44CD0EAB8DF39896 /* ClipRenameBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62E40AE7A5000372F2127B77 /* ClipRenameBar.swift */; };
 		661BE62CAE15AD29224B240B /* Date+ClipFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30229873C44CC54400D1C744 /* Date+ClipFormatting.swift */; };
 		6E48E6171AF82A3A84A0F143 /* RowClickHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014F6A15549D95FB46D5302 /* RowClickHandling.swift */; };
@@ -56,6 +57,7 @@
 		F3646EF2FF0988FB75DE931F /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 5053D96CBC31A6AC04EE4F07 /* KeyboardShortcuts */; };
 		F437CAC9D0197F4A19AD5436 /* CapturePreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38061566A7F97BB4FE27BCD /* CapturePreset.swift */; };
 		F51F6CCC9DE42E96DEBC4373 /* ClipboardKeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C8086AC9C3F2CBC99D72C50 /* ClipboardKeyboardView.swift */; };
+		F52A07CBAD035B8F51051478 /* ClipEntryThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2065D000C3E4B9F1F899DD71 /* ClipEntryThumbnail.swift */; };
 		FED5F11077B93A970E576A0E /* PermissionsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A72144684651120725866ED /* PermissionsWindowController.swift */; };
 		FEFD635408FC022A520ED17C /* cheetah.png in Resources */ = {isa = PBXBuildFile; fileRef = AC4D8CEDC2E4D2B6BF225D7E /* cheetah.png */; };
 /* End PBXBuildFile section */
@@ -63,7 +65,9 @@
 /* Begin PBXFileReference section */
 		0D9B634D8A7F81B967797A99 /* HideTextFieldFocusRing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HideTextFieldFocusRing.swift; sourceTree = "<group>"; };
 		17889F6CA04E5C396C7D78F5 /* KeyboardNavigationHandlers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardNavigationHandlers.swift; sourceTree = "<group>"; };
+		1C5BC8040E4331D37B8ECF67 /* AppIconResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconResolver.swift; sourceTree = "<group>"; };
 		1E1984BF89FE4C74F4F1A0D4 /* ImageFramer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageFramer.swift; sourceTree = "<group>"; };
+		2065D000C3E4B9F1F899DD71 /* ClipEntryThumbnail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEntryThumbnail.swift; sourceTree = "<group>"; };
 		30229873C44CC54400D1C744 /* Date+ClipFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+ClipFormatting.swift"; sourceTree = "<group>"; };
 		30E11364E2666F7E73C54D7D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		32F824237740C8E6395E793F /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
@@ -146,6 +150,7 @@
 		1E87586D26CA89351F28D23B /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				1C5BC8040E4331D37B8ECF67 /* AppIconResolver.swift */,
 				53E4436B40C55A08E5C97F5A /* AppModelContainer.swift */,
 				8AE633B1AF39F3084ACB13BD /* CaptureActionSymbol.swift */,
 				30229873C44CC54400D1C744 /* Date+ClipFormatting.swift */,
@@ -187,6 +192,7 @@
 			children = (
 				83BD87349207258D418C17A3 /* CapturePresetStore.swift */,
 				F15A4ECCAA9A7372DB15A7E8 /* ClipboardStore.swift */,
+				2065D000C3E4B9F1F899DD71 /* ClipEntryThumbnail.swift */,
 				1E1984BF89FE4C74F4F1A0D4 /* ImageFramer.swift */,
 				44F3CA1AD2F1332D79B48B79 /* PasteboardMonitor.swift */,
 				32F824237740C8E6395E793F /* PermissionManager.swift */,
@@ -342,6 +348,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C14E96BE351FD2F6BFBD6843 /* AppDelegate.swift in Sources */,
+				56D9CBD1DB0F5EF1DB699E80 /* AppIconResolver.swift in Sources */,
 				38A22B38FFC82423FE2EC859 /* AppModelContainer.swift in Sources */,
 				30735F291F553707BA2A64B7 /* CaptureActionSymbol.swift in Sources */,
 				F437CAC9D0197F4A19AD5436 /* CapturePreset.swift in Sources */,
@@ -349,6 +356,7 @@
 				BB454437C3F80051E8C3C9D8 /* CaptureToastController.swift in Sources */,
 				133991DEE4C63F117D8A05E6 /* ClipEntryLeadingIcon.swift in Sources */,
 				1D760B7B9A97B8264B50317A /* ClipEntryRowLabels.swift in Sources */,
+				F52A07CBAD035B8F51051478 /* ClipEntryThumbnail.swift in Sources */,
 				63A861CE44CD0EAB8DF39896 /* ClipRenameBar.swift in Sources */,
 				C7BC139F7D407DB2F420D39B /* ClipStackPanelView.swift in Sources */,
 				00ECC2C717C840949927EF92 /* ClipboardEntry.swift in Sources */,

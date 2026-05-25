@@ -26,6 +26,7 @@ final class ClipboardEntry {
     var customTitle: String?
     var source: String
     var sourceAppName: String?
+    var sourceAppBundleID: String?
     var searchableText: String
 
     init(
@@ -38,6 +39,7 @@ final class ClipboardEntry {
         customTitle: String? = nil,
         source: ClipboardSource,
         sourceAppName: String? = nil,
+        sourceAppBundleID: String? = nil,
         searchableText: String
     ) {
         self.id = id
@@ -49,6 +51,7 @@ final class ClipboardEntry {
         self.customTitle = customTitle
         self.source = source.rawValue
         self.sourceAppName = sourceAppName
+        self.sourceAppBundleID = sourceAppBundleID
         self.searchableText = searchableText
     }
 
