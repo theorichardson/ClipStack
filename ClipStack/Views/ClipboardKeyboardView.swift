@@ -13,8 +13,6 @@ struct ClipboardKeyboardView: View {
     @State private var scrollTrigger: UUID?
     @State private var renamingEntryID: UUID?
     @State private var renameText = ""
-    @State private var lastRowClickID: UUID?
-    @State private var lastRowClickTime = Date.distantPast
     @State private var lastKeyboardSelectionTime: Date?
     @FocusState private var focusTarget: FocusTarget?
     @FocusState private var isRenameFocused: Bool
@@ -73,19 +71,17 @@ struct ClipboardKeyboardView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: RowLayout.inset) {
+                        LazyVStack(spacing: 0) {
                             ForEach(filteredEntries) { entry in
                                 InsetSelectableRow(
                                     isSelected: selectedIDs.contains(entry.id),
-                                    isActive: activeID == entry.id
+                                    isActive: activeID == entry.id,
+                                    onSingleClick: { copyEntryFromRowClick(entry) },
+                                    onDoubleClick: { beginRename(entry) }
                                 ) {
                                     ClipboardKeyboardRow(entry: entry)
                                 }
                                 .id(entry.id)
-                                .contentShape(RoundedRectangle(cornerRadius: RowLayout.rowCornerRadius, style: .continuous))
-                                .onTapGesture {
-                                    handleRowClick(on: entry)
-                                }
                             }
                         }
                         .padding(.horizontal, RowLayout.inset)
@@ -254,19 +250,9 @@ struct ClipboardKeyboardView: View {
         }
     }
 
-    private func handleRowClick(on entry: ClipboardEntry) {
-        let now = Date()
-        if lastRowClickID == entry.id,
-           now.timeIntervalSince(lastRowClickTime) < 0.35 {
-            beginRename(entry)
-            lastRowClickID = nil
-            lastRowClickTime = .distantPast
-            return
-        }
-
-        lastRowClickID = entry.id
-        lastRowClickTime = now
-        handleTap(on: entry.id)
+    private func copyEntryFromRowClick(_ entry: ClipboardEntry) {
+        ClipboardStore.shared.copyEntry(entry)
+        onDismiss()
     }
 
     private func beginRename(_ entry: ClipboardEntry) {
@@ -311,50 +297,10 @@ struct ClipboardKeyboardView: View {
         onDismiss()
     }
 
-    private func handleTap(on id: UUID) {
-        lastKeyboardSelectionTime = nil
-        let mods = NSEvent.modifierFlags
-        if mods.contains(.command) {
-            toggleSelection(id)
-        } else if mods.contains(.shift) {
-            extendSelection(to: id)
-        } else {
-            replaceSelection(with: id)
-        }
-    }
-
     private func replaceSelection(with id: UUID) {
         selectedIDs = [id]
         activeID = id
         anchorID = id
-    }
-
-    private func toggleSelection(_ id: UUID) {
-        if selectedIDs.contains(id) {
-            selectedIDs.remove(id)
-            if activeID == id {
-                activeID = selectedIDs.isEmpty ? nil : id
-            }
-        } else {
-            selectedIDs.insert(id)
-        }
-        activeID = id
-        anchorID = id
-    }
-
-    private func extendSelection(to id: UUID) {
-        let ids = filteredEntries.map(\.id)
-        guard let anchor = anchorID ?? activeID,
-              let anchorIndex = ids.firstIndex(of: anchor),
-              let targetIndex = ids.firstIndex(of: id) else {
-            replaceSelection(with: id)
-            return
-        }
-        let range = anchorIndex <= targetIndex
-            ? ids[anchorIndex...targetIndex]
-            : ids[targetIndex...anchorIndex]
-        selectedIDs = Set(range)
-        activeID = id
     }
 
     private func moveSelection(by offset: Int, modifiers: EventModifiers) {
@@ -395,24 +341,48 @@ struct ClipboardKeyboardView: View {
 private struct InsetSelectableRow<Content: View>: View {
     let isSelected: Bool
     let isActive: Bool
+    var onSingleClick: () -> Void = {}
+    var onDoubleClick: () -> Void = {}
     @ViewBuilder var content: () -> Content
+
+    @State private var isHovered = false
+
+    private var rowShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: RowLayout.rowCornerRadius, style: .continuous)
+    }
 
     var body: some View {
         content()
             .padding(RowLayout.inset)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: RowLayout.rowCornerRadius, style: .continuous)
-                        .fill(Color.accentColor.opacity(isActive ? 0.28 : 0.18))
-                }
+                rowShape.fill(rowBackgroundColor)
             }
             .overlay {
                 if isActive && !isSelected {
-                    RoundedRectangle(cornerRadius: RowLayout.rowCornerRadius, style: .continuous)
-                        .stroke(Color.accentColor.opacity(0.5), lineWidth: 1)
+                    rowShape.stroke(Color.accentColor.opacity(0.5), lineWidth: 1)
                 }
             }
+            .contentShape(rowShape)
+            .onHover { hovering in
+                isHovered = hovering
+                if hovering {
+                    NSCursor.dragCopy.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            .onRowClick(single: onSingleClick, double: onDoubleClick)
+    }
+
+    private var rowBackgroundColor: Color {
+        if isSelected {
+            Color.accentColor.opacity(isActive ? 0.28 : 0.18)
+        } else if isHovered {
+            Color.accentColor.opacity(0.08)
+        } else {
+            Color.clear
+        }
     }
 }
 
