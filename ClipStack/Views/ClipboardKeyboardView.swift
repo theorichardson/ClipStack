@@ -403,7 +403,7 @@ private struct ClipboardKeyboardRow: View {
 
 private enum RowLayout {
     static let inset: CGFloat = 4
-    static let searchTopInset: CGFloat = 28
+    static let searchTopInset: CGFloat = 4
     static let rowCornerRadius: CGFloat = 12
     static let iconSize: CGFloat = 32
     static let iconTextSpacing: CGFloat = 10

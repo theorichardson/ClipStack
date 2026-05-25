@@ -77,6 +77,7 @@ final class PanelController: NSObject {
         panel.isMovable = true
         panel.animationBehavior = .none
         panel.backgroundColor = .windowBackgroundColor
+        panel.standardWindowButton(.closeButton)?.isHidden = true
         panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
         panel.standardWindowButton(.zoomButton)?.isHidden = true
         panel.delegate = self
