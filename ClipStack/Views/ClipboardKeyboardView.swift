@@ -7,6 +7,7 @@ struct ClipboardKeyboardView: View {
     @Query(sort: \ClipboardEntry.createdAt, order: .reverse) private var entries: [ClipboardEntry]
 
     @State private var searchText = ""
+    @State private var sourceFilterKey: String?
     @State private var selectedIDs: Set<UUID> = []
     @State private var activeID: UUID?
     @State private var anchorID: UUID?
@@ -38,12 +39,14 @@ struct ClipboardKeyboardView: View {
 
     private var filteredEntries: [ClipboardEntry] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let matches: [ClipboardEntry]
+        var matches = entries
 
-        if query.isEmpty {
-            matches = entries
-        } else {
-            matches = entries.filter { entry in
+        if let sourceFilterKey {
+            matches = matches.filter { ClipSourceFilter.key(for: $0) == sourceFilterKey }
+        }
+
+        if !query.isEmpty {
+            matches = matches.filter { entry in
                 entry.searchableText.localizedCaseInsensitiveContains(query)
                     || entry.preview.localizedCaseInsensitiveContains(query)
                     || (entry.customTitle?.localizedCaseInsensitiveContains(query) ?? false)
@@ -54,10 +57,24 @@ struct ClipboardKeyboardView: View {
         return Array(matches.prefix(menuLimit))
     }
 
+    private var availableSourceFilters: [ClipSourceFilter] {
+        var seen: Set<String> = []
+        var result: [ClipSourceFilter] = []
+        for entry in entries {
+            let filter = ClipSourceFilter(entry: entry)
+            if seen.insert(filter.key).inserted {
+                result.append(filter)
+            }
+        }
+        return result
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             searchField
             Divider()
+
+            sourceFilterBar
 
             if filteredEntries.isEmpty {
                 ContentUnavailableView {
@@ -223,9 +240,44 @@ struct ClipboardKeyboardView: View {
         .padding(.bottom, RowLayout.inset)
     }
 
+    @ViewBuilder
+    private var sourceFilterBar: some View {
+        let filters = availableSourceFilters
+        if filters.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    SourcePill(
+                        title: "All",
+                        symbolName: "tray.full",
+                        bundleID: nil,
+                        isSelected: sourceFilterKey == nil
+                    ) {
+                        sourceFilterKey = nil
+                    }
+
+                    ForEach(filters) { filter in
+                        SourcePill(
+                            title: filter.displayName,
+                            symbolName: filter.fallbackSymbolName,
+                            bundleID: filter.bundleID,
+                            isSelected: sourceFilterKey == filter.key
+                        ) {
+                            sourceFilterKey = (sourceFilterKey == filter.key) ? nil : filter.key
+                        }
+                    }
+                }
+                .padding(.horizontal, RowLayout.rowContentLeadingInset - 1)
+                .padding(.vertical, 6)
+            }
+            .scrollClipDisabled()
+            Divider()
+        }
+    }
+
     private func prepareForDisplay() {
         cancelRename()
         searchText = ""
+        sourceFilterKey = nil
         let visibleIDs = filteredEntries.map(\.id)
         let visibleSet = Set(visibleIDs)
         let shouldRestoreSelection = lastKeyboardSelectionTime.map {
@@ -414,5 +466,100 @@ private enum RowLayout {
     /// (additional `inset` padding), so their leading icon sits at `inset * 2`.
     static var rowContentLeadingInset: CGFloat {
         inset * 2
+    }
+}
+
+struct ClipSourceFilter: Identifiable, Hashable {
+    let key: String
+    let displayName: String
+    let bundleID: String?
+    let isUniversal: Bool
+
+    var id: String { key }
+
+    var fallbackSymbolName: String {
+        isUniversal ? "iphone" : "app"
+    }
+
+    init(entry: ClipboardEntry) {
+        self.bundleID = entry.sourceAppBundleID
+        self.isUniversal = entry.typedSource == .universal
+        self.displayName = entry.displaySourceApp
+        self.key = Self.key(bundleID: entry.sourceAppBundleID, name: entry.displaySourceApp, isUniversal: isUniversal)
+    }
+
+    static func key(for entry: ClipboardEntry) -> String {
+        key(
+            bundleID: entry.sourceAppBundleID,
+            name: entry.displaySourceApp,
+            isUniversal: entry.typedSource == .universal
+        )
+    }
+
+    private static func key(bundleID: String?, name: String, isUniversal: Bool) -> String {
+        if let bundleID, !bundleID.isEmpty { return "bid:\(bundleID)" }
+        if isUniversal { return "universal" }
+        return "name:\(name.lowercased())"
+    }
+}
+
+private struct SourcePill: View {
+    let title: String
+    let symbolName: String
+    let bundleID: String?
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                iconView
+                    .frame(width: 16, height: 16)
+                Text(title)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(background)
+            .clipShape(Capsule(style: .continuous))
+            .contentShape(Capsule(style: .continuous))
+            .foregroundStyle(Color.primary)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovered = hovering
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var iconView: some View {
+        if let bundleID, let icon = AppIconResolver.icon(forBundleID: bundleID) {
+            Image(nsImage: icon)
+                .resizable()
+                .interpolation(.high)
+        } else {
+            Image(systemName: symbolName)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var background: some View {
+        if isSelected {
+            Capsule(style: .continuous).fill(Color.primary.opacity(0.12))
+        } else if isHovered {
+            Capsule(style: .continuous).fill(Color.primary.opacity(0.06))
+        } else {
+            Color.clear
+        }
     }
 }

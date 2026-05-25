@@ -35,6 +35,15 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: ClipStack/ClipStack.entitlements
         CODE_SIGN_STYLE: Automatic
+        # CRITICAL FOR TCC: pin every build (Xcode Run, raw xcodebuild, the
+        # install script) to the same Apple Development identity + team.
+        # Without this, Xcode/xcodebuild falls back to an ad-hoc signature
+        # whose designated requirement (and therefore TCC identity) differs
+        # from the dev-cert build at ~/Applications/ClipStack.app — so a
+        # permission granted to one copy isn't honored by the other, and the
+        # running app prompts again even though System Settings shows it on.
+        DEVELOPMENT_TEAM: YW3FCY33TJ
+        CODE_SIGN_IDENTITY: "Apple Development"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_STRICT_CONCURRENCY: complete
         ENABLE_DEBUG_DYLIB: NO

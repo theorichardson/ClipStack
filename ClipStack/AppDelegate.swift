@@ -38,11 +38,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         bootstrapClipboardStack()
 
-        // Calling this once at launch registers ClipStack with TCC and keeps
-        // the Accessibility entry in System Settings fresh. Without it,
-        // AXIsProcessTrusted() can return false after a rebuild even when
-        // the user has the toggle on — because the entry references a stale
-        // designated requirement and never gets re-evaluated.
+        // Mirrors WidthSync's launch flow: a single call to
+        // requestAccessibilityAccess() when AXIsProcessTrusted() reports
+        // false. This keeps the System Settings entry's designated
+        // requirement fresh; combined with the pinned dev-cert signing in
+        // project.yml, AXIsProcessTrusted() returns true on subsequent
+        // launches and the system prompt does not appear.
         if !PermissionManager.hasAccessibilityAccess {
             PermissionManager.requestAccessibilityAccess()
         }
@@ -734,6 +735,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func beginRegionSelection(mode: RegionSelectionMode) {
         popoverController?.close()
+        Task { await ensureScreenCaptureRegisteredOrPrompt() }
         RegionSelectorController.shared.beginSelection(
             onSaveRegion: { [weak self] region, done in
                 self?.promptToSaveCapturePreset(region: region)
@@ -824,6 +826,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func beginWindowCapture() {
         popoverController?.close()
+        Task { await ensureScreenCaptureRegisteredOrPrompt() }
         WindowPickerOverlayController.shared.pickWindow(mode: .capture) { [weak self] window in
             guard let self, let window else { return }
             let name = WindowPickerController.suggestedName(for: window)
@@ -838,6 +841,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
 
+        Task { await ensureScreenCaptureRegisteredOrPrompt() }
         WindowPickerOverlayController.shared.pickWindow(mode: .record) { [weak self] window in
             guard let self, let window else { return }
             let name = WindowPickerController.suggestedName(for: window)
@@ -1004,6 +1008,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } catch {
             presentError(error)
         }
+    }
+
+    /// Ensure ClipStack is registered with TCC for Screen Recording. If the
+    /// permission has never been requested for this code identity (e.g. right
+    /// after a `tccutil reset ScreenCapture`, or on a freshly-installed
+    /// build), `CGRequestScreenCaptureAccess()` is what actually registers
+    /// the app with TCC and triggers the system prompt — `SCShareableContent`
+    /// alone can silently fail without ever surfacing a prompt or adding a
+    /// row in System Settings → Screen & System Audio Recording. Calling
+    /// this when the user initiates a capture guarantees the prompt fires
+    /// and ClipStack appears in the list.
+    @MainActor
+    private func ensureScreenCaptureRegisteredOrPrompt() async {
+        await PermissionManager.refreshPermissionStatus()
+        if PermissionManager.hasScreenCaptureAccess { return }
+        _ = await PermissionManager.registerScreenCaptureAccess()
     }
 
     /// Show the system Accessibility prompt (so the user can grant or
