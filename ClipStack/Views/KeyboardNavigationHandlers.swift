@@ -4,6 +4,8 @@ extension View {
     func keyboardNavigationHandlers(
         onUp: @escaping (EventModifiers) -> Void,
         onDown: @escaping (EventModifiers) -> Void,
+        onLeft: @escaping (EventModifiers) -> Void = { _ in },
+        onRight: @escaping (EventModifiers) -> Void = { _ in },
         onEscape: @escaping () -> Void,
         onReturn: @escaping () -> Void
     ) -> some View {
@@ -15,6 +17,12 @@ extension View {
                     return .handled
                 case .downArrow:
                     onDown(press.modifiers)
+                    return .handled
+                case .leftArrow:
+                    onLeft(press.modifiers)
+                    return .handled
+                case .rightArrow:
+                    onRight(press.modifiers)
                     return .handled
                 default:
                     return .ignored

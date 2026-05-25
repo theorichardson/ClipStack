@@ -72,7 +72,6 @@ struct ClipboardKeyboardView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchField
-            Divider()
 
             sourceFilterBar
 
@@ -137,6 +136,8 @@ struct ClipboardKeyboardView: View {
         .keyboardNavigationHandlers(
             onUp: { moveSelection(by: -1, modifiers: $0) },
             onDown: { moveSelection(by: 1, modifiers: $0) },
+            onLeft: { _ in moveFilter(by: -1) },
+            onRight: { _ in moveFilter(by: 1) },
             onEscape: {
                 if isRenaming {
                     cancelRename()
@@ -201,6 +202,8 @@ struct ClipboardKeyboardView: View {
                 .keyboardNavigationHandlers(
                     onUp: { moveSelection(by: -1, modifiers: $0) },
                     onDown: { moveSelection(by: 1, modifiers: $0) },
+                    onLeft: { _ in moveFilter(by: -1) },
+                    onRight: { _ in moveFilter(by: 1) },
                     onEscape: {
                         if isRenaming {
                             cancelRename()
@@ -235,7 +238,7 @@ struct ClipboardKeyboardView: View {
             }
         }
         .padding(.leading, RowLayout.rowContentLeadingInset - 1)
-        .padding(.trailing, RowLayout.inset)
+        .padding(.trailing, RowLayout.rowContentLeadingInset + 3)
         .padding(.top, RowLayout.searchTopInset)
         .padding(.bottom, RowLayout.inset)
     }
@@ -244,33 +247,43 @@ struct ClipboardKeyboardView: View {
     private var sourceFilterBar: some View {
         let filters = availableSourceFilters
         if filters.count > 1 {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    SourcePill(
-                        title: "All",
-                        symbolName: "tray.full",
-                        bundleID: nil,
-                        isSelected: sourceFilterKey == nil
-                    ) {
-                        sourceFilterKey = nil
-                    }
-
-                    ForEach(filters) { filter in
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
                         SourcePill(
-                            title: filter.displayName,
-                            symbolName: filter.fallbackSymbolName,
-                            bundleID: filter.bundleID,
-                            isSelected: sourceFilterKey == filter.key
+                            title: "All",
+                            symbolName: "tray.full",
+                            bundleID: nil,
+                            isSelected: sourceFilterKey == nil
                         ) {
-                            sourceFilterKey = (sourceFilterKey == filter.key) ? nil : filter.key
+                            sourceFilterKey = nil
+                        }
+                        .id(filterScrollID(for: nil))
+
+                        ForEach(filters) { filter in
+                            SourcePill(
+                                title: filter.displayName,
+                                symbolName: filter.fallbackSymbolName,
+                                bundleID: filter.bundleID,
+                                isSelected: sourceFilterKey == filter.key
+                            ) {
+                                sourceFilterKey = (sourceFilterKey == filter.key) ? nil : filter.key
+                            }
+                            .id(filterScrollID(for: filter.key))
                         }
                     }
+                    .padding(.horizontal, RowLayout.rowContentLeadingInset - 1)
+                    .padding(.vertical, 6)
                 }
-                .padding(.horizontal, RowLayout.rowContentLeadingInset - 1)
-                .padding(.vertical, 6)
+                .scrollClipDisabled()
+                .onChange(of: sourceFilterKey) { _, newValue in
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        proxy.scrollTo(filterScrollID(for: newValue), anchor: .center)
+                    }
+                }
             }
-            .scrollClipDisabled()
-            Divider()
         }
     }
 
@@ -353,6 +366,24 @@ struct ClipboardKeyboardView: View {
         selectedIDs = [id]
         activeID = id
         anchorID = id
+    }
+
+    private var filterKeys: [String?] {
+        [nil] + availableSourceFilters.map(\.key)
+    }
+
+    private func filterScrollID(for key: String?) -> String {
+        key.map { "filter:\($0)" } ?? "filter:all"
+    }
+
+    private func moveFilter(by offset: Int) {
+        guard !isRenaming else { return }
+        let keys = filterKeys
+        guard keys.count > 1 else { return }
+
+        let currentIndex = sourceFilterKey.flatMap { keys.firstIndex(of: $0) } ?? 0
+        let nextIndex = min(max(currentIndex + offset, 0), keys.count - 1)
+        sourceFilterKey = keys[nextIndex]
     }
 
     private func moveSelection(by offset: Int, modifiers: EventModifiers) {
