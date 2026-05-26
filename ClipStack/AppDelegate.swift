@@ -739,33 +739,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func screenshotRegion(_ sender: Any) {
-        beginRegionSelection(mode: .screenshot)
+        beginRegionSelection()
     }
 
     @objc func recordRegion(_ sender: Any) {
-        beginRegionSelection(mode: .record)
+        beginRegionSelection()
     }
 
     func beginRegionScreenshot() {
-        beginRegionSelection(mode: .screenshot)
+        beginRegionSelection()
     }
 
     func beginRegionRecording() {
-        beginRegionSelection(mode: .record)
+        beginRegionSelection()
     }
 
-    private enum RegionSelectionMode {
-        case screenshot
-        case record
-    }
-
-    private func beginRegionSelection(mode: RegionSelectionMode) {
+    func beginRegionSelection() {
         popoverController?.close()
         Task { await ensureScreenCaptureRegisteredOrPrompt() }
         RegionSelectorController.shared.beginSelection(
-            intent: mode == .screenshot ? .screenshot : .record,
-            initialRegion: mode == .screenshot ? LastScreenshotRegionStore.shared.region : nil,
-            persistRegionOnDismiss: mode == .screenshot,
+            initialRegion: LastScreenshotRegionStore.shared.region,
+            persistRegionOnDismiss: true,
             onSaveRegion: { [weak self] region, done in
                 self?.promptToSaveCapturePreset(region: region)
                 done()
@@ -848,35 +842,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc func captureWindow(_ sender: Any) {
-        beginWindowCapture()
+        beginWindowSelection()
     }
 
     @objc func recordWindow(_ sender: Any) {
-        beginWindowRecording()
+        beginWindowSelection()
     }
 
     func beginWindowCapture() {
-        popoverController?.close()
-        Task { await ensureScreenCaptureRegisteredOrPrompt() }
-        WindowPickerOverlayController.shared.pickWindow(mode: .capture) { [weak self] window in
-            guard let self, let window else { return }
-            let name = WindowPickerController.suggestedName(for: window)
-            Task { await self.captureWindowScreenshot(window: window, name: name) }
-        }
+        beginWindowSelection()
     }
 
     func beginWindowRecording() {
-        popoverController?.close()
-        guard !ScreenCaptureService.shared.isRecording else {
-            presentError(ScreenCaptureError.alreadyRecording)
-            return
-        }
+        beginWindowSelection()
+    }
 
+    func beginWindowSelection() {
+        popoverController?.close()
         Task { await ensureScreenCaptureRegisteredOrPrompt() }
-        WindowPickerOverlayController.shared.pickWindow(mode: .record) { [weak self] window in
-            guard let self, let window else { return }
-            let name = WindowPickerController.suggestedName(for: window)
-            Task { await self.startWindowRecording(window: window, name: name) }
+        WindowPickerOverlayController.shared.pickWindow { [weak self] result in
+            guard let self else { return }
+            switch result {
+            case .cancelled:
+                return
+            case .capture(let window):
+                let name = WindowPickerController.suggestedName(for: window)
+                Task { await self.captureWindowScreenshot(window: window, name: name) }
+            case .record(let window):
+                guard !ScreenCaptureService.shared.isRecording else {
+                    self.presentError(ScreenCaptureError.alreadyRecording)
+                    return
+                }
+                let name = WindowPickerController.suggestedName(for: window)
+                Task { await self.startWindowRecording(window: window, name: name) }
+            }
         }
     }
 

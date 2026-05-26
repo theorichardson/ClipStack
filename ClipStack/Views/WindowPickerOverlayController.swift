@@ -1,5 +1,4 @@
 import AppKit
-import CoreText
 import ScreenCaptureKit
 
 /// Interactive "click to pick a window" overlay, modeled on macOS's
@@ -10,36 +9,30 @@ import ScreenCaptureKit
 final class WindowPickerOverlayController {
     static let shared = WindowPickerOverlayController()
 
-    enum Mode {
-        case capture
-        case record
-
-        fileprivate var actionLabel: String {
-            switch self {
-            case .capture: "Click to capture"
-            case .record: "Click to record"
-            }
-        }
+    enum Result {
+        case cancelled
+        case capture(SCWindow)
+        case record(SCWindow)
     }
 
     private var overlays: [Overlay] = []
+    private var highlightWindow: WindowPickerHighlightWindow?
     private var availableWindows: [SCWindow] = []
     private var ownOverlayIDs: Set<CGWindowID> = []
     private var localKeyMonitor: Any?
     private var globalKeyMonitor: Any?
-    private var mode: Mode = .record
-    private var completion: ((SCWindow?) -> Void)?
+    private var highlightedWindow: SCWindow?
+    private var completion: ((Result) -> Void)?
 
     private init() {}
 
     func cancel() {
-        finish(with: nil)
+        finish(with: .cancelled)
     }
 
-    func pickWindow(mode: Mode = .record, completion: @escaping (SCWindow?) -> Void) {
+    func pickWindow(completion: @escaping (Result) -> Void) {
         guard overlays.isEmpty else { return }
 
-        self.mode = mode
         self.completion = completion
 
         Task {
@@ -51,7 +44,7 @@ final class WindowPickerOverlayController {
                 self.start(with: windows)
             } catch {
                 self.presentError(error)
-                self.finish(with: nil)
+                self.finish(with: .cancelled)
             }
         }
     }
@@ -66,10 +59,16 @@ final class WindowPickerOverlayController {
                     self?.handleHover(globalPoint: point)
                 },
                 onClick: { [weak self] in
-                    self?.handleClick()
+                    self?.confirmCapture()
+                },
+                onConfirmCapture: { [weak self] in
+                    self?.confirmCapture()
+                },
+                onConfirmRecord: { [weak self] in
+                    self?.confirmRecord()
                 },
                 onCancel: { [weak self] in
-                    self?.finish(with: nil)
+                    self?.finish(with: .cancelled)
                 }
             )
 
@@ -92,10 +91,7 @@ final class WindowPickerOverlayController {
             overlays.append(Overlay(window: window, view: view))
         }
 
-        ownOverlayIDs = Set(overlays.compactMap { overlay in
-            let n = overlay.window.windowNumber
-            return n > 0 ? CGWindowID(n) : nil
-        })
+        ownOverlayIDs = overlayWindowIDs()
 
         for overlay in overlays {
             overlay.window.orderFrontRegardless()
@@ -125,17 +121,25 @@ final class WindowPickerOverlayController {
         globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
             guard event.keyCode == 53 else { return }
             Task { @MainActor in
-                self?.finish(with: nil)
+                self?.finish(with: .cancelled)
             }
         }
 
         localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
             guard let self else { return event }
-            if event.keyCode == 53 {
-                self.finish(with: nil)
+            switch event.keyCode {
+            case 53:
+                self.finish(with: .cancelled)
                 return nil
+            case 36, 76:
+                self.confirmCapture()
+                return nil
+            case 15:
+                self.confirmRecord()
+                return nil
+            default:
+                return event
             }
-            return event
         }
     }
 
@@ -144,10 +148,12 @@ final class WindowPickerOverlayController {
     fileprivate func handleHover(globalPoint: CGPoint) {
         let quartzPoint = ScreenCoordinates.cocoaToQuartz(globalPoint)
         let topWindow = topmostWindow(at: quartzPoint)
+        highlightedWindow = topWindow
+        updateHighlight(for: topWindow)
 
         for overlay in overlays {
             guard let topWindow else {
-                overlay.view.setHighlight(rect: nil, label: nil)
+                overlay.view.setBadge(rect: nil, label: nil)
                 continue
             }
 
@@ -158,22 +164,74 @@ final class WindowPickerOverlayController {
             )
             let visible = localRect.intersection(overlay.view.bounds)
             guard !visible.isNull, visible.width > 0, visible.height > 0 else {
-                overlay.view.setHighlight(rect: nil, label: nil)
+                overlay.view.setBadge(rect: nil, label: nil)
                 continue
             }
 
-            overlay.view.setHighlight(rect: localRect, label: badgeAttributedString(for: topWindow))
+            overlay.view.setBadge(rect: localRect, label: badgeAttributedString(for: topWindow))
         }
     }
 
-    private func handleClick() {
-        let quartz = ScreenCoordinates.cocoaToQuartz(NSEvent.mouseLocation)
-
-        guard let chosen = topmostWindow(at: quartz) else {
-            // Click missed any pickable window — keep picking.
+    /// Positions a borderless highlight window directly above the hovered
+    /// target in the compositor's z-order so foreground windows cover it.
+    private func updateHighlight(for window: SCWindow?) {
+        guard let window else {
+            highlightWindow?.orderOut(nil)
             return
         }
-        finish(with: chosen)
+
+        let cocoaFrame = ScreenCoordinates.quartzToCocoa(window.frame)
+        guard cocoaFrame.width > 0, cocoaFrame.height > 0 else {
+            highlightWindow?.orderOut(nil)
+            return
+        }
+
+        if highlightWindow == nil {
+            let contentRect = NSRect(origin: .zero, size: cocoaFrame.size)
+            let highlight = WindowPickerHighlightWindow(
+                contentRect: contentRect,
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            highlight.isOpaque = false
+            highlight.backgroundColor = .clear
+            highlight.level = .normal
+            highlight.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+            highlight.ignoresMouseEvents = true
+            highlight.hasShadow = false
+            highlight.contentView = WindowPickerHighlightView(frame: contentRect)
+            highlightWindow = highlight
+        }
+
+        highlightWindow?.setFrame(cocoaFrame, display: true)
+        if let contentView = highlightWindow?.contentView {
+            contentView.frame = NSRect(origin: .zero, size: cocoaFrame.size)
+            contentView.needsDisplay = true
+        }
+        highlightWindow?.order(.above, relativeTo: Int(window.windowID))
+        ownOverlayIDs = overlayWindowIDs()
+    }
+
+    private func overlayWindowIDs() -> Set<CGWindowID> {
+        var ids = Set(overlays.compactMap { overlay -> CGWindowID? in
+            let number = overlay.window.windowNumber
+            return number > 0 ? CGWindowID(number) : nil
+        })
+        if let highlightWindow, highlightWindow.windowNumber > 0 {
+            ids.insert(CGWindowID(highlightWindow.windowNumber))
+        }
+        return ids
+    }
+
+    private func confirmCapture() {
+        guard let highlightedWindow else { return }
+        finish(with: .capture(highlightedWindow))
+    }
+
+    private func confirmRecord() {
+        guard let highlightedWindow else { return }
+        finish(with: .record(highlightedWindow))
     }
 
     private func topmostWindow(at quartzPoint: CGPoint) -> SCWindow? {
@@ -223,14 +281,14 @@ final class WindowPickerOverlayController {
             .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
             .foregroundColor: NSColor.labelColor,
         ]))
-        result.append(NSAttributedString(string: "  \(mode.actionLabel) · Esc Cancel", attributes: [
+        result.append(NSAttributedString(string: "  ↩ Capture · R Record · Esc Cancel", attributes: [
             .font: NSFont.systemFont(ofSize: 13, weight: .regular),
             .foregroundColor: NSColor.labelColor,
         ]))
         return result
     }
 
-    private func finish(with window: SCWindow?) {
+    private func finish(with result: Result) {
         if let monitor = globalKeyMonitor {
             NSEvent.removeMonitor(monitor)
             globalKeyMonitor = nil
@@ -240,14 +298,17 @@ final class WindowPickerOverlayController {
             localKeyMonitor = nil
         }
         for overlay in overlays { overlay.window.orderOut(nil) }
+        highlightWindow?.orderOut(nil)
+        highlightWindow = nil
         overlays.removeAll()
         ownOverlayIDs.removeAll()
         availableWindows.removeAll()
+        highlightedWindow = nil
         NSCursor.arrow.set()
 
         let callback = completion
         completion = nil
-        callback?(window)
+        callback?(result)
     }
 
     private func presentError(_ error: Error) {
@@ -275,65 +336,51 @@ private final class KeyableOverlayWindow: NSWindow {
     override var canBecomeMain: Bool { true }
 }
 
-private final class WindowPickerBadgeLabelView: NSView {
-    var attributedText = NSAttributedString()
+private final class WindowPickerHighlightWindow: NSWindow {
+    override var canBecomeKey: Bool { false }
+    override var canBecomeMain: Bool { false }
+}
 
-    override var isFlipped: Bool { true }
-
-    func fittingSize() -> CGSize {
-        Self.fittingSize(for: attributedText)
-    }
-
-    static func fittingSize(for attributed: NSAttributedString) -> CGSize {
-        guard attributed.length > 0 else { return .zero }
-        let line = CTLineCreateWithAttributedString(attributed as CFAttributedString)
-        var ascent: CGFloat = 0
-        var descent: CGFloat = 0
-        let width = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
-        return CGSize(width: ceil(width), height: ceil(ascent + descent))
-    }
+private final class WindowPickerHighlightView: NSView {
+    override var isFlipped: Bool { false }
 
     override func draw(_ dirtyRect: NSRect) {
-        guard attributedText.length > 0 else { return }
-        let rect = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height)
-        attributedText.draw(with: rect, options: [.usesLineFragmentOrigin, .usesFontLeading])
+        NSColor.systemBlue.withAlphaComponent(0.18).setFill()
+        NSBezierPath(rect: bounds).fill()
+
+        NSColor.systemBlue.setStroke()
+        let stroke = NSBezierPath(rect: bounds)
+        stroke.lineWidth = 3
+        stroke.stroke()
     }
 }
 
 private final class WindowPickerOverlayView: NSView {
     private let onHover: (CGPoint) -> Void
     private let onClick: () -> Void
+    private let onConfirmCapture: () -> Void
+    private let onConfirmRecord: () -> Void
     private let onCancel: () -> Void
 
-    private var highlightRect: CGRect?
-    private var highlightLabel: NSAttributedString?
+    private var badgeRect: CGRect?
+    private var badgeLabelText: NSAttributedString?
     private var trackingArea: NSTrackingArea?
 
-    private let badgeEffectView: NSVisualEffectView = {
-        let view = NSVisualEffectView()
-        view.material = .hudWindow
-        view.blendingMode = .behindWindow
-        view.state = .active
-        view.wantsLayer = true
-        view.layer?.cornerRadius = 8
-        view.layer?.cornerCurve = .continuous
-        view.layer?.masksToBounds = true
-        view.layer?.borderWidth = 0.5
-        view.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.45).cgColor
-        return view
-    }()
-
-    private let badgeLabel = WindowPickerBadgeLabelView()
+    private let badgeHost = CaptureSelectionBadgeHost()
     private var badgeConfigured = false
 
     init(
         screenFrame: CGRect,
         onHover: @escaping (CGPoint) -> Void,
         onClick: @escaping () -> Void,
+        onConfirmCapture: @escaping () -> Void,
+        onConfirmRecord: @escaping () -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.onHover = onHover
         self.onClick = onClick
+        self.onConfirmCapture = onConfirmCapture
+        self.onConfirmRecord = onConfirmRecord
         self.onCancel = onCancel
         super.init(frame: CGRect(origin: .zero, size: screenFrame.size))
         wantsLayer = true
@@ -383,58 +430,38 @@ private final class WindowPickerOverlayView: NSView {
     }
 
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 {
+        switch event.keyCode {
+        case 53:
             onCancel()
-            return
+        case 36, 76:
+            onConfirmCapture()
+        case 15:
+            onConfirmRecord()
+        default:
+            super.keyDown(with: event)
         }
-        super.keyDown(with: event)
     }
 
-    func setHighlight(rect: CGRect?, label: NSAttributedString?) {
-        highlightRect = rect
-        highlightLabel = label
-        needsDisplay = true
+    func setBadge(rect: CGRect?, label: NSAttributedString?) {
+        badgeRect = rect
+        badgeLabelText = label
         updateBadge()
     }
 
     private func configureBadgeIfNeeded() {
         guard !badgeConfigured else { return }
         badgeConfigured = true
-        addSubview(badgeEffectView)
-        badgeEffectView.addSubview(badgeLabel)
+        badgeHost.attach(to: self)
     }
 
     private func updateBadge() {
-        guard let rect = highlightRect, let label = highlightLabel else {
-            badgeEffectView.isHidden = true
+        guard let rect = badgeRect, let label = badgeLabelText else {
+            badgeHost.hide()
             return
         }
 
         configureBadgeIfNeeded()
-        badgeEffectView.isHidden = false
-        badgeLabel.attributedText = label
-
-        let padding = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
-        let textSize = badgeLabel.fittingSize()
-        let bgSize = CGSize(
-            width: textSize.width + padding.left + padding.right,
-            height: textSize.height + padding.top + padding.bottom
-        )
-
-        let aboveY = rect.maxY + 8
-        let belowY = rect.minY - bgSize.height - 8
-        let originY: CGFloat = aboveY + bgSize.height <= bounds.maxY ? aboveY : max(belowY, 8)
-        let originX = max(8, min(rect.minX, bounds.maxX - bgSize.width - 8))
-        let bgRect = CGRect(origin: CGPoint(x: originX, y: originY), size: bgSize)
-
-        badgeEffectView.frame = bgRect
-        badgeLabel.frame = CGRect(
-            x: padding.left,
-            y: padding.bottom,
-            width: textSize.width,
-            height: textSize.height
-        )
-        badgeLabel.needsDisplay = true
+        badgeHost.update(anchorRect: rect, in: bounds, label: label)
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -442,18 +469,5 @@ private final class WindowPickerOverlayView: NSView {
         // obscuring the windows beneath.
         NSColor.black.withAlphaComponent(0.06).setFill()
         bounds.fill()
-
-        guard let rect = highlightRect else { return }
-        // Intersect with bounds so we only draw the portion on this screen.
-        let visible = rect.intersection(bounds)
-        guard !visible.isNull, visible.width > 0, visible.height > 0 else { return }
-
-        NSColor.systemBlue.withAlphaComponent(0.18).setFill()
-        NSBezierPath(rect: visible).fill()
-
-        NSColor.systemBlue.setStroke()
-        let stroke = NSBezierPath(rect: visible)
-        stroke.lineWidth = 3
-        stroke.stroke()
     }
 }

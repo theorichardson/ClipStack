@@ -1,11 +1,5 @@
 import AppKit
-import CoreText
 import ScreenCaptureKit
-
-enum RegionSelectionIntent {
-    case screenshot
-    case record
-}
 
 enum RegionSelectionResult {
     case cancelled
@@ -29,7 +23,6 @@ final class RegionSelectorController {
     private init() {}
 
     func beginSelection(
-        intent: RegionSelectionIntent = .screenshot,
         initialRegion: CaptureRegion? = nil,
         persistRegionOnDismiss: Bool = false,
         onSaveRegion: ((CaptureRegion, @escaping () -> Void) -> Void)? = nil,
@@ -81,7 +74,6 @@ final class RegionSelectorController {
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
             let view = RegionSelectionView(
-                intent: intent,
                 screenFrame: screen.frame,
                 getGlobalSelection: { [weak self] in self?.globalSelectionRect ?? .zero },
                 setGlobalSelection: { [weak self] rect in
@@ -233,31 +225,6 @@ private final class KeyableBorderlessWindow: NSWindow {
     override var canBecomeMain: Bool { true }
 }
 
-private final class RegionBadgeLabelView: NSView {
-    var attributedText = NSAttributedString()
-
-    override var isFlipped: Bool { true }
-
-    func fittingSize() -> CGSize {
-        Self.fittingSize(for: attributedText)
-    }
-
-    static func fittingSize(for attributed: NSAttributedString) -> CGSize {
-        guard attributed.length > 0 else { return .zero }
-        let line = CTLineCreateWithAttributedString(attributed as CFAttributedString)
-        var ascent: CGFloat = 0
-        var descent: CGFloat = 0
-        let width = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
-        return CGSize(width: ceil(width), height: ceil(ascent + descent))
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        guard attributedText.length > 0 else { return }
-        let rect = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height)
-        attributedText.draw(with: rect, options: [.usesLineFragmentOrigin, .usesFontLeading])
-    }
-}
-
 private enum DragMode {
     case move
     case resize(edges: WindowSnapEdges)
@@ -265,7 +232,6 @@ private enum DragMode {
 }
 
 private final class RegionSelectionView: NSView {
-    private let intent: RegionSelectionIntent
     private let screenFrame: CGRect
     private let getGlobalSelection: () -> CGRect
     private let setGlobalSelection: (CGRect) -> Void
@@ -289,21 +255,7 @@ private final class RegionSelectionView: NSView {
         ScreenCoordinates.localRect(forGlobalCocoa: getGlobalSelection(), on: screenFrame)
     }
 
-    private let badgeEffectView: NSVisualEffectView = {
-        let view = NSVisualEffectView()
-        view.material = .hudWindow
-        view.blendingMode = .behindWindow
-        view.state = .active
-        view.wantsLayer = true
-        view.layer?.cornerRadius = 8
-        view.layer?.cornerCurve = .continuous
-        view.layer?.masksToBounds = true
-        view.layer?.borderWidth = 0.5
-        view.layer?.borderColor = NSColor.separatorColor.withAlphaComponent(0.45).cgColor
-        return view
-    }()
-
-    private let badgeLabel = RegionBadgeLabelView()
+    private let badgeHost = CaptureSelectionBadgeHost()
 
     private let presetPopup: NSPopUpButton = {
         let popup = NSPopUpButton(frame: .zero, pullsDown: false)
@@ -328,7 +280,6 @@ private final class RegionSelectionView: NSView {
     }
 
     init(
-        intent: RegionSelectionIntent,
         screenFrame: CGRect,
         getGlobalSelection: @escaping () -> CGRect,
         setGlobalSelection: @escaping (CGRect) -> Void,
@@ -336,7 +287,6 @@ private final class RegionSelectionView: NSView {
         onSaveRegion: @escaping (CaptureRegion, @escaping () -> Void) -> Void,
         onComplete: @escaping (RegionSelectionResult) -> Void
     ) {
-        self.intent = intent
         self.screenFrame = screenFrame
         self.getGlobalSelection = getGlobalSelection
         self.setGlobalSelection = setGlobalSelection
@@ -381,8 +331,8 @@ private final class RegionSelectionView: NSView {
         case 53:
             onComplete(.cancelled)
         case 36, 76:
-            confirmSelection(as: intent == .record ? .record : .screenshot)
-        case 15 where intent == .screenshot:
+            confirmSelection(as: .screenshot)
+        case 15:
             confirmSelection(as: .record)
         case 1:
             requestSaveRegion()
@@ -643,16 +593,14 @@ private final class RegionSelectionView: NSView {
         if shouldShowBadge() {
             updateBadge()
         } else {
-            badgeEffectView.isHidden = true
+            badgeHost.hide()
         }
     }
 
     private func configureBadgeIfNeeded() {
         guard !badgeConfigured else { return }
         badgeConfigured = true
-        addSubview(badgeEffectView)
-        badgeEffectView.addSubview(badgeLabel)
-        badgeEffectView.addSubview(presetPopup)
+        badgeHost.attach(to: self, trailing: presetPopup)
         presetPopup.target = self
         presetPopup.action = #selector(presetPopupChanged(_:))
         refreshPresetPopup()
@@ -703,12 +651,11 @@ private final class RegionSelectionView: NSView {
     private func updateBadge() {
         let rect = selectionRect
         guard rect.width > 0, rect.height > 0 else {
-            badgeEffectView.isHidden = true
+            badgeHost.hide()
             return
         }
 
         configureBadgeIfNeeded()
-        badgeEffectView.isHidden = false
 
         let snapActive = snapModifierHeld || WindowSnapHelper.isSnapModifierHeld(NSEvent.modifierFlags)
         let global = getGlobalSelection()
@@ -717,41 +664,7 @@ private final class RegionSelectionView: NSView {
             width: Int(global.width),
             height: Int(global.height)
         )
-        badgeLabel.attributedText = attributed
-
-        let padding = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
-        let spacing: CGFloat = 8
-        let textSize = badgeLabel.fittingSize()
-        presetPopup.sizeToFit()
-        let popupSize = presetPopup.frame.size
-        let popupWidth = popupSize.width
-        let popupHeight = max(18, popupSize.height)
-        let contentHeight = max(textSize.height, popupHeight)
-        let bgSize = CGSize(
-            width: padding.left + textSize.width + spacing + popupWidth + padding.right,
-            height: contentHeight + padding.top + padding.bottom
-        )
-
-        let aboveY = selectionRect.maxY + 8
-        let belowY = selectionRect.minY - bgSize.height - 8
-        let originY: CGFloat = aboveY + bgSize.height <= bounds.maxY ? aboveY : max(belowY, 8)
-        let originX = max(8, min(selectionRect.minX, bounds.maxX - bgSize.width - 8))
-        let bgRect = CGRect(origin: CGPoint(x: originX, y: originY), size: bgSize)
-
-        badgeEffectView.frame = bgRect
-        badgeLabel.frame = CGRect(
-            x: padding.left,
-            y: padding.bottom + (contentHeight - textSize.height) / 2,
-            width: textSize.width,
-            height: textSize.height
-        )
-        presetPopup.frame = CGRect(
-            x: padding.left + textSize.width + spacing,
-            y: padding.bottom + (contentHeight - popupHeight) / 2,
-            width: popupWidth,
-            height: popupHeight
-        )
-        badgeLabel.needsDisplay = true
+        badgeHost.update(anchorRect: rect, in: bounds, label: attributed)
     }
 
     private func badgeAttributedString(snapActive: Bool, width: Int, height: Int) -> NSAttributedString {
@@ -776,9 +689,7 @@ private final class RegionSelectionView: NSView {
         }
 
         result.append(NSAttributedString(
-            string: intent == .screenshot
-                ? "  ↩ Capture · R Record · S Save Region · Esc Cancel"
-                : "  ↩ Record · S Save Region · Esc Cancel",
+            string: "  ↩ Capture · R Record · S Save Region · Esc Cancel",
             attributes: [
             .font: NSFont.systemFont(ofSize: 13, weight: .regular),
             .foregroundColor: NSColor.labelColor,

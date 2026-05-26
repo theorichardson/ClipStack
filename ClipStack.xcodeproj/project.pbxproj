@@ -56,6 +56,7 @@
 		D749DA8B8CC480EB8FCF20F8 /* tahoe-light.png in Resources */ = {isa = PBXBuildFile; fileRef = 63016E459E9FD41EA2FBE3EA /* tahoe-light.png */; };
 		DC50BFC337FC899C0B569564 /* RegionOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC4D0CD56BF48496008434F /* RegionOverlayController.swift */; };
 		DEFCE4914CFD3F8A2941DC91 /* ManageCapturePresetsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB707BF16F382FDD1D5066E9 /* ManageCapturePresetsWindowController.swift */; };
+		EE422B0F93D3A174954BA39D /* CaptureSelectionBadgeHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E2BAC2A5A4519F0FE603173 /* CaptureSelectionBadgeHost.swift */; };
 		F0F34EFD223F1515671059E0 /* WindowPickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9FAAC68248813A06ABCC55 /* WindowPickerController.swift */; };
 		F3646EF2FF0988FB75DE931F /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 5053D96CBC31A6AC04EE4F07 /* KeyboardShortcuts */; };
 		F437CAC9D0197F4A19AD5436 /* CapturePreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = D38061566A7F97BB4FE27BCD /* CapturePreset.swift */; };
@@ -85,6 +86,7 @@
 		4AD33A9A1EA5E938B05C3DC9 /* ClipStack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClipStack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4BF94003ACDBD2ACFB274D96 /* tahoe-beach-day.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "tahoe-beach-day.png"; sourceTree = "<group>"; };
 		4C8086AC9C3F2CBC99D72C50 /* ClipboardKeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardKeyboardView.swift; sourceTree = "<group>"; };
+		4E2BAC2A5A4519F0FE603173 /* CaptureSelectionBadgeHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureSelectionBadgeHost.swift; sourceTree = "<group>"; };
 		4E415E4323B59400A70E83FC /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		5298CE0F84B1447AEF03AC16 /* WallpaperFrame.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperFrame.swift; sourceTree = "<group>"; };
 		53E4436B40C55A08E5C97F5A /* AppModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelContainer.swift; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 		1F6677CEADDDF2B5362CF04F /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				4E2BAC2A5A4519F0FE603173 /* CaptureSelectionBadgeHost.swift */,
 				3685DAD64FB238C176B0E70A /* CaptureToastController.swift */,
 				4C8086AC9C3F2CBC99D72C50 /* ClipboardKeyboardView.swift */,
 				BB4E160D4DAE7C7F93BA103B /* ClipEntryLeadingIcon.swift */,
@@ -366,6 +369,7 @@
 				30735F291F553707BA2A64B7 /* CaptureActionSymbol.swift in Sources */,
 				F437CAC9D0197F4A19AD5436 /* CapturePreset.swift in Sources */,
 				D4AE903AA4E50A924B5ED895 /* CapturePresetStore.swift in Sources */,
+				EE422B0F93D3A174954BA39D /* CaptureSelectionBadgeHost.swift in Sources */,
 				BB454437C3F80051E8C3C9D8 /* CaptureToastController.swift in Sources */,
 				133991DEE4C63F117D8A05E6 /* ClipEntryLeadingIcon.swift in Sources */,
 				1D760B7B9A97B8264B50317A /* ClipEntryRowLabels.swift in Sources */,

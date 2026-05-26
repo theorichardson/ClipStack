@@ -115,32 +115,16 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
             symbol: CaptureActionSymbol.screenshotRegion,
             label: "Region",
             tooltip: "Screenshot Region (⌘⇧⌥R)",
-            action: #selector(handleScreenshotRegion(_:))
+            action: #selector(handleRegion(_:))
         ))
         stack.addArrangedSubview(makeCell(
             symbol: CaptureActionSymbol.screenshotWindow,
             label: "Window",
             tooltip: "Screenshot Window (⌘⇧⌥C)",
-            action: #selector(handleScreenshotWindow(_:))
+            action: #selector(handleWindow(_:))
         ))
 
         stack.addArrangedSubview(makeDivider())
-
-        if !isRecording {
-            stack.addArrangedSubview(makeCell(
-                symbol: CaptureActionSymbol.recordRegion,
-                label: "Region",
-                tooltip: "Record Region (⌘⇧⌥T)",
-                action: #selector(handleRecordRegion(_:))
-            ))
-            stack.addArrangedSubview(makeCell(
-                symbol: CaptureActionSymbol.recordWindow,
-                label: "Window",
-                tooltip: "Record Window (⌘⇧⌥W)",
-                action: #selector(handleRecordWindow(_:))
-            ))
-            stack.addArrangedSubview(makeDivider())
-        }
 
         stack.addArrangedSubview(makeCell(
             symbol: "square.resize.down",
@@ -201,24 +185,14 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
         appDelegate?.stopActiveRecordingFromUI()
     }
 
-    @objc private func handleScreenshotRegion(_ sender: Any?) {
+    @objc private func handleRegion(_ sender: Any?) {
         popover.close()
-        appDelegate?.beginRegionScreenshot()
+        appDelegate?.beginRegionSelection()
     }
 
-    @objc private func handleScreenshotWindow(_ sender: Any?) {
+    @objc private func handleWindow(_ sender: Any?) {
         popover.close()
-        appDelegate?.beginWindowCapture()
-    }
-
-    @objc private func handleRecordRegion(_ sender: Any?) {
-        popover.close()
-        appDelegate?.beginRegionRecording()
-    }
-
-    @objc private func handleRecordWindow(_ sender: Any?) {
-        popover.close()
-        appDelegate?.beginWindowRecording()
+        appDelegate?.beginWindowSelection()
     }
 
     @objc private func handleSaveWidth(_ sender: Any?) {
@@ -257,10 +231,15 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
 /// A Control-Center-style cell: SF Symbol icon on top, short caption label
 /// underneath, subtle rounded hover/press highlight covering the whole cell.
 final class IconBarCell: NSControl {
+    /// Nested inside the popover content padding so the hover pill tracks the
+    /// popover shell's corner curvature (outer radius − inset).
+    private static let cornerRadius: CGFloat = 16
+
     private let iconView = NSImageView()
     private let labelView = NSTextField(labelWithString: "")
     private var trackingArea: NSTrackingArea?
     private var isPressed = false
+    private var isHovering = false
 
     var tintColor: NSColor = .labelColor {
         didSet { iconView.contentTintColor = tintColor }
@@ -274,7 +253,8 @@ final class IconBarCell: NSControl {
         self.focusRingType = .none
 
         wantsLayer = true
-        layer?.cornerRadius = 12
+        layer?.cornerRadius = Self.cornerRadius
+        layer?.cornerCurve = .continuous
         layer?.backgroundColor = NSColor.clear.cgColor
 
         let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .regular)
@@ -331,16 +311,19 @@ final class IconBarCell: NSControl {
     }
 
     override func mouseEntered(with event: NSEvent) {
-        updateBackground(hovering: true)
+        isHovering = true
+        updateBackground()
     }
 
     override func mouseExited(with event: NSEvent) {
-        updateBackground(hovering: false)
+        isHovering = false
+        updateBackground()
     }
 
     override func mouseDown(with event: NSEvent) {
         isPressed = true
-        updateBackground(hovering: true)
+        isHovering = true
+        updateBackground()
 
         // Track until mouseUp so we get a chance to fire the action.
         var keepTracking = true
@@ -351,7 +334,8 @@ final class IconBarCell: NSControl {
                 keepTracking = false
                 isPressed = false
                 let inside = bounds.contains(convert(next.locationInWindow, from: nil))
-                updateBackground(hovering: inside)
+                isHovering = inside
+                updateBackground()
                 if inside, let action {
                     NSApp.sendAction(action, to: target, from: self)
                 }
@@ -361,11 +345,19 @@ final class IconBarCell: NSControl {
         }
     }
 
-    private func updateBackground(hovering: Bool) {
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateBackground()
+    }
+
+    private func updateBackground() {
+        let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        let highlight = isDark ? NSColor.white : NSColor.black
+
         if isPressed {
-            layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.18).cgColor
-        } else if hovering {
-            layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor
+            layer?.backgroundColor = highlight.withAlphaComponent(isDark ? 0.18 : 0.12).cgColor
+        } else if isHovering {
+            layer?.backgroundColor = highlight.withAlphaComponent(isDark ? 0.08 : 0.06).cgColor
         } else {
             layer?.backgroundColor = NSColor.clear.cgColor
         }
