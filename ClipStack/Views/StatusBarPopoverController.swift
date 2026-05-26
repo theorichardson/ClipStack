@@ -24,20 +24,9 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
 
     func close(restoreFocus: Bool = true) {
         restoreFocusOnClose = restoreFocus
-        let menusWereOpen = activePopupMenu != nil || hasVisibleMenuWindows
         dismissActiveMenusImmediately()
         activePopupMenu = nil
-
-        let previousAnimates = popover.animates
-        if menusWereOpen {
-            popover.animates = false
-        }
         popover.close()
-        popover.animates = previousAnimates
-    }
-
-    private var hasVisibleMenuWindows: Bool {
-        NSApp.windows.contains { isMenuTrackingWindow($0) && $0.isVisible }
     }
 
     private func dismissActiveMenusImmediately() {
