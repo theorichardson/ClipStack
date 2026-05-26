@@ -10,6 +10,7 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
     private var globalClickMonitor: Any?
     private var localClickMonitor: Any?
     private var restoreFocusOnClose = true
+    private weak var activePopupMenu: NSMenu?
 
     init(appDelegate: AppDelegate) {
         self.appDelegate = appDelegate
@@ -23,7 +24,27 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
 
     func close(restoreFocus: Bool = true) {
         restoreFocusOnClose = restoreFocus
+        let menusWereOpen = activePopupMenu != nil || hasVisibleMenuWindows
+        dismissActiveMenusImmediately()
+        activePopupMenu = nil
+
+        let previousAnimates = popover.animates
+        if menusWereOpen {
+            popover.animates = false
+        }
         popover.close()
+        popover.animates = previousAnimates
+    }
+
+    private var hasVisibleMenuWindows: Bool {
+        NSApp.windows.contains { isMenuTrackingWindow($0) && $0.isVisible }
+    }
+
+    private func dismissActiveMenusImmediately() {
+        activePopupMenu?.cancelTrackingWithoutAnimation()
+        for window in NSApp.windows where isMenuTrackingWindow(window) {
+            window.orderOut(nil)
+        }
     }
 
     func show(from button: NSStatusBarButton) {
@@ -55,22 +76,60 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
 
         globalClickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
-        ) { [weak self] _ in
-            Task { @MainActor in self?.close() }
+        ) { [weak self] event in
+            guard let self else { return }
+            self.handleOutsideClick(for: event)
         }
 
         localClickMonitor = NSEvent.addLocalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] event in
             guard let self else { return event }
-            // If the click is outside the popover's content view, close it.
-            if let contentView = self.popover.contentViewController?.view,
-               let eventWindow = event.window,
-               eventWindow !== contentView.window {
-                Task { @MainActor in self.close() }
-            }
+            self.handleOutsideClick(for: event)
             return event
         }
+    }
+
+    /// Outside-click monitors can fire on the main thread while `menu.popUp` is
+    /// in its event loop — never `DispatchQueue.main.sync` here or libdispatch
+    /// traps with "queue already owned by current thread".
+    private func handleOutsideClick(for event: NSEvent) {
+        if Thread.isMainThread {
+            guard shouldDismissPopover(for: event) else { return }
+            close()
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                guard self.shouldDismissPopover(for: event) else { return }
+                self.close()
+            }
+        }
+    }
+
+    private func shouldDismissPopover(for event: NSEvent) -> Bool {
+        guard popover.isShown else { return false }
+        guard let popoverWindow = popover.contentViewController?.view.window else { return true }
+
+        let screenPoint = NSEvent.mouseLocation
+        if popoverWindow.frame.contains(screenPoint) { return false }
+        if isPointerOverMenu(at: screenPoint) { return false }
+
+        if let eventWindow = event.window {
+            if eventWindow === popoverWindow { return false }
+            if isMenuTrackingWindow(eventWindow) { return false }
+        }
+
+        return true
+    }
+
+    private func isPointerOverMenu(at screenPoint: NSPoint) -> Bool {
+        NSApp.windows.contains { window in
+            isMenuTrackingWindow(window) && window.frame.contains(screenPoint)
+        }
+    }
+
+    private func isMenuTrackingWindow(_ window: NSWindow) -> Bool {
+        window.level == .popUpMenu
     }
 
     private func removeOutsideClickMonitor() {
@@ -134,24 +193,10 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
 
         stack.addArrangedSubview(makeCell(
             symbol: "square.resize.down",
-            label: "Apply width",
+            label: "Width",
             tooltip: "Width Presets",
             action: #selector(handleWidthPresets(_:))
         ))
-        stack.addArrangedSubview(makeCell(
-            symbol: "square.resize",
-            label: "Save Width",
-            tooltip: "Save Frontmost Window Width",
-            action: #selector(handleSaveWidth(_:))
-        ))
-        stack.addArrangedSubview(makeDivider())
-        stack.addArrangedSubview(makeCell(
-            symbol: "rectangle.on.rectangle.dashed",
-            label: "Saved regions",
-            tooltip: "Saved regions",
-            action: #selector(handleCapturePresets(_:))
-        ))
-
         stack.addArrangedSubview(makeDivider())
 
         stack.addArrangedSubview(makeCell(
@@ -201,16 +246,6 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
         appDelegate?.beginWindowSelection()
     }
 
-    @objc private func handleSaveWidth(_ sender: Any?) {
-        close(restoreFocus: false)
-        appDelegate?.saveFrontmostWidthFromShortcut()
-    }
-
-    @objc private func handleCapturePresets(_ sender: Any?) {
-        guard let view = sender as? NSView, let menu = appDelegate?.buildCapturePresetsMenu() else { return }
-        present(menu: menu, from: view)
-    }
-
     @objc private func handleWidthPresets(_ sender: Any?) {
         guard let view = sender as? NSView, let menu = appDelegate?.buildWidthPresetsMenu() else { return }
         present(menu: menu, from: view)
@@ -230,6 +265,8 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
         let isFlipped = view.isFlipped
         let yBelow: CGFloat = isFlipped ? view.bounds.height + 4 : -4
         let origin = NSPoint(x: 0, y: yBelow)
+        activePopupMenu = menu
+        defer { activePopupMenu = nil }
         menu.popUp(positioning: nil, at: origin, in: view)
     }
 }
