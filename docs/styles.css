@@ -1,21 +1,9 @@
 :root {
-    color-scheme: light dark;
+    color-scheme: light;
     --bg: #ffffff;
-    --fg: #1c1c1e;
+    --fg: #1d1d1f;
     --muted: #6e6e73;
-    --accent: #0a84ff;
-    --card: #f5f5f7;
-    --border: rgba(0, 0, 0, 0.08);
-}
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #0a0a0c;
-        --fg: #f5f5f7;
-        --muted: #98989d;
-        --accent: #0a84ff;
-        --card: #1c1c1e;
-        --border: rgba(255, 255, 255, 0.08);
-    }
+    --accent: #0071e3;
 }
 
 * { box-sizing: border-box; }
@@ -25,41 +13,42 @@ html, body {
     padding: 0;
     background: var(--bg);
     color: var(--fg);
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 main {
-    max-width: 880px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 80px 24px 64px;
+    padding: 96px 24px 72px;
 }
 
 .hero {
     text-align: center;
-    padding-bottom: 72px;
+    padding-bottom: 80px;
 }
 
-.logo {
-    font-size: 64px;
-    line-height: 1;
-    margin-bottom: 16px;
+.app-icon {
+    width: 112px;
+    height: 112px;
+    margin-bottom: 24px;
 }
 
 h1 {
-    font-size: 56px;
-    line-height: 1.05;
-    letter-spacing: -0.02em;
-    margin: 0 0 16px;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    margin: 0 0 14px;
     font-weight: 700;
 }
 
 .tagline {
-    font-size: 20px;
+    font-size: 19px;
+    line-height: 1.45;
     color: var(--muted);
-    max-width: 520px;
-    margin: 0 auto 32px;
+    max-width: 460px;
+    margin: 0 auto 28px;
 }
 
 .download {
@@ -67,41 +56,37 @@ h1 {
     background: var(--accent);
     color: white;
     text-decoration: none;
-    padding: 14px 32px;
+    padding: 12px 28px;
     border-radius: 999px;
-    font-size: 17px;
-    font-weight: 600;
-    transition: transform 0.15s ease, opacity 0.15s ease;
+    font-size: 16px;
+    font-weight: 500;
+    transition: opacity 0.15s ease;
 }
 
-.download:hover {
-    transform: translateY(-1px);
-    opacity: 0.92;
-}
+.download:hover { opacity: 0.9; }
 
 .meta {
-    margin-top: 16px;
+    margin-top: 18px;
     font-size: 13px;
     color: var(--muted);
 }
 
 .features {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    margin-bottom: 80px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px 48px;
+    margin-bottom: 96px;
 }
 
-.features article {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
+@media (max-width: 560px) {
+    .features { grid-template-columns: 1fr; gap: 32px; }
+    h1 { font-size: 40px; }
+    main { padding-top: 64px; }
 }
 
 .features h2 {
-    font-size: 18px;
-    margin: 0 0 8px;
+    font-size: 17px;
+    margin: 0 0 6px;
     font-weight: 600;
     letter-spacing: -0.01em;
 }
@@ -110,14 +95,20 @@ h1 {
     margin: 0;
     color: var(--muted);
     font-size: 15px;
+    line-height: 1.5;
 }
 
 footer {
     text-align: center;
-    border-top: 1px solid var(--border);
-    padding-top: 32px;
     color: var(--muted);
     font-size: 14px;
+}
+
+.links {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    margin-bottom: 12px;
 }
 
 footer a {
@@ -128,6 +119,6 @@ footer a {
 footer a:hover { text-decoration: underline; }
 
 .copy {
-    margin-top: 8px;
+    margin: 0;
     font-size: 12px;
 }
