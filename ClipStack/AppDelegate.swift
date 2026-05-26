@@ -47,6 +47,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         capturedTargetPID = nil
     }
 
+    /// Re-activate the app that was frontmost before the toolbar popover opened.
+    func restoreCapturedTargetApplicationFocus() {
+        guard let pid = capturedTargetPID,
+              let app = NSRunningApplication(processIdentifier: pid) else { return }
+        let ourPID = ProcessInfo.processInfo.processIdentifier
+        guard app.processIdentifier != ourPID else { return }
+        app.activate()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         bootstrapClipboardStack()
 
@@ -186,7 +195,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func showRightClickMenu(from button: NSStatusBarButton) {
-        popoverController?.close()
+        popoverController?.close(restoreFocus: false)
         // Capture the target app *before* the menu opens. Status-bar menus
         // on an LSUIElement app usually don't activate us, but some user
         // actions in the menu (e.g. presenting an alert) will, and we want
@@ -755,7 +764,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func beginRegionSelection() {
-        popoverController?.close()
+        popoverController?.close(restoreFocus: false)
         Task { await ensureScreenCaptureRegisteredOrPrompt() }
         RegionSelectorController.shared.beginSelection(
             initialRegion: LastScreenshotRegionStore.shared.region,
@@ -858,7 +867,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func beginWindowSelection() {
-        popoverController?.close()
+        popoverController?.close(restoreFocus: false)
         Task { await ensureScreenCaptureRegisteredOrPrompt() }
         WindowPickerOverlayController.shared.pickWindow { [weak self] result in
             guard let self else { return }
@@ -1177,7 +1186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func openSettings(_ sender: Any?) {
-        popoverController?.close()
+        popoverController?.close(restoreFocus: false)
         SettingsWindowController.shared.open()
     }
 

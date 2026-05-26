@@ -9,6 +9,7 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
     private weak var appDelegate: AppDelegate?
     private var globalClickMonitor: Any?
     private var localClickMonitor: Any?
+    private var restoreFocusOnClose = true
 
     init(appDelegate: AppDelegate) {
         self.appDelegate = appDelegate
@@ -20,7 +21,8 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
 
     var isShown: Bool { popover.isShown }
 
-    func close() {
+    func close(restoreFocus: Bool = true) {
+        restoreFocusOnClose = restoreFocus
         popover.close()
     }
 
@@ -54,7 +56,7 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
         globalClickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] _ in
-            Task { @MainActor in self?.popover.close() }
+            Task { @MainActor in self?.close() }
         }
 
         localClickMonitor = NSEvent.addLocalMonitorForEvents(
@@ -65,7 +67,7 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
             if let contentView = self.popover.contentViewController?.view,
                let eventWindow = event.window,
                eventWindow !== contentView.window {
-                Task { @MainActor in self.popover.close() }
+                Task { @MainActor in self.close() }
             }
             return event
         }
@@ -85,6 +87,10 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
     nonisolated func popoverDidClose(_ notification: Notification) {
         Task { @MainActor in
             self.removeOutsideClickMonitor()
+            if self.restoreFocusOnClose {
+                self.appDelegate?.restoreCapturedTargetApplicationFocus()
+            }
+            self.restoreFocusOnClose = true
             self.appDelegate?.clearCapturedTargetApplicationPID()
         }
     }
@@ -181,22 +187,22 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
     }
 
     @objc private func handleStop(_ sender: Any?) {
-        popover.close()
+        close(restoreFocus: false)
         appDelegate?.stopActiveRecordingFromUI()
     }
 
     @objc private func handleRegion(_ sender: Any?) {
-        popover.close()
+        close(restoreFocus: false)
         appDelegate?.beginRegionSelection()
     }
 
     @objc private func handleWindow(_ sender: Any?) {
-        popover.close()
+        close(restoreFocus: false)
         appDelegate?.beginWindowSelection()
     }
 
     @objc private func handleSaveWidth(_ sender: Any?) {
-        popover.close()
+        close(restoreFocus: false)
         appDelegate?.saveFrontmostWidthFromShortcut()
     }
 
