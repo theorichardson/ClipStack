@@ -1,0 +1,18 @@
+<?xml version="1.0" standalone="yes"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>ClipStack</title>
+        <link>https://theorichardson.github.io/ClipStack/appcast.xml</link>
+        <description>ClipStack release feed</description>
+        <language>en</language>
+        <item>
+            <title>ClipStack 1.0.0</title>
+            <pubDate>Tue, 26 May 2026 17:14:56 +0000</pubDate>
+            <sparkle:version>202605261311</sparkle:version>
+            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/theorichardson/ClipStack/releases/download/v1.0.0/ClipStack-1.0.0.dmg" length="5341642" type="application/octet-stream" sparkle:edSignature="D2EPZb2yQnJzwAe3FRYCHWj4qXA9uaVGSiTBoEoLTiJtg4hMAjm2eok+wdmhjME7QBBjPe8WOOc+AOLBa+2BCg==" length="5341642" />
+        </item>
+        <!-- NEW_ITEMS_ABOVE -->
+    </channel>
+</rss>

@@ -9,6 +9,9 @@ packages:
   KeyboardShortcuts:
     url: https://github.com/sindresorhus/KeyboardShortcuts
     from: 2.2.0
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.6.0
 settings:
   base:
     SWIFT_VERSION: "5.9"
@@ -19,19 +22,27 @@ targets:
     platform: macOS
     sources:
       - path: ClipStack
+    info:
+      path: ClipStack/Info.plist
+      properties:
+        CFBundleDisplayName: ClipStack
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSApplicationCategoryType: public.app-category.productivity
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "Copyright © 2026 Theodore Richardson. All rights reserved."
+        NSAccessibilityUsageDescription: ClipStack needs Accessibility access to read and resize other app windows.
+        SUFeedURL: https://theorichardson.github.io/ClipStack/appcast.xml
+        SUPublicEDKey: BhodtYrnnd++jdOHuigj6iQAPtKUAUI+1TlsZJHLDoc=
+        SUEnableAutomaticChecks: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.theorichardson.ClipStack
         PRODUCT_NAME: ClipStack
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: "1"
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: ClipStack
-        INFOPLIST_KEY_LSUIElement: YES
-        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Theodore Richardson. All rights reserved."
-        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
-        INFOPLIST_KEY_LSMinimumSystemVersion: "14.0"
-        INFOPLIST_KEY_NSAccessibilityUsageDescription: ClipStack needs Accessibility access to read and resize other app windows.
+        GENERATE_INFOPLIST_FILE: NO
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: ClipStack/ClipStack.entitlements
         CODE_SIGN_STYLE: Automatic
@@ -43,15 +54,15 @@ targets:
         # permission granted to one copy isn't honored by the other, and the
         # running app prompts again even though System Settings shows it on.
         DEVELOPMENT_TEAM: YW3FCY33TJ
-        CODE_SIGN_IDENTITY: "Apple Development"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_STRICT_CONCURRENCY: complete
         ENABLE_DEBUG_DYLIB: NO
         ENABLE_PREVIEWS: NO
       configs:
-        Release:
-          CODE_SIGN_ENTITLEMENTS: ClipStack/ClipStack-MAS.entitlements
+        Debug:
+          CODE_SIGN_IDENTITY: "Apple Development"
     dependencies:
       - package: KeyboardShortcuts
+      - package: Sparkle
       - sdk: ScreenCaptureKit.framework
       - sdk: AVFoundation.framework

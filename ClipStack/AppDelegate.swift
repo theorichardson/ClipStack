@@ -1,9 +1,21 @@
 import AppKit
 import ScreenCaptureKit
+import Sparkle
 import SwiftData
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    /// Sparkle updater. Starts checking for updates against `SUFeedURL`
+    /// (set in Info.plist) on launch and on a recurring schedule. The
+    /// `Check for Updates…` menu item forwards to this controller.
+    private lazy var updaterController: SPUStandardUpdaterController = {
+        SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+    }()
+
     private var statusItem: NSStatusItem?
     private var recordingStatusItem: NSStatusItem?
     private var recordingTimer: Timer?
@@ -37,6 +49,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         bootstrapClipboardStack()
+
+        _ = updaterController
 
         // Mirrors WidthSync's launch flow: a single call to
         // requestAccessibilityAccess() when AXIsProcessTrusted() reports
@@ -609,6 +623,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
 
+        let updateItem = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        updateItem.target = self
+        menu.addItem(updateItem)
+
         let quitItem = NSMenuItem(
             title: "Quit ClipStack",
             action: #selector(quit(_:)),
@@ -618,6 +640,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(quitItem)
 
         return menu
+    }
+
+    @objc func checkForUpdates(_ sender: Any?) {
+        updaterController.checkForUpdates(sender)
     }
 
     /// Invoked by the popover's stop button.
