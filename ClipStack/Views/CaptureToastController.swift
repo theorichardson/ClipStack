@@ -3,6 +3,11 @@ import AVFoundation
 import CoreImage
 import QuartzCore
 
+private func viewUsesDarkAppearance(_ view: NSView) -> Bool {
+    let appearance = view.window?.effectiveAppearance ?? view.effectiveAppearance
+    return appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+}
+
 @MainActor
 final class CaptureToastController {
     static let shared = CaptureToastController()
@@ -67,6 +72,7 @@ final class CaptureToastController {
         toast.acceptsMouseMovedEvents = true
         toast.isReleasedWhenClosed = false
         toast.animationBehavior = .none
+        toast.appearance = NSApp.effectiveAppearance
         toast.level = .popUpMenu
         toast.collectionBehavior = [
             .canJoinAllSpaces,
@@ -425,6 +431,7 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
     private let thumbnailSize: NSSize
     private let imageContainer = NSView()
     private let hoverOverlay = NSView()
+    private let hoverDarkTint = NSView()
     private let frameButton: HoverPillButton?
     private let copyButton: HoverPillButton
     private var trackingArea: NSTrackingArea?
@@ -510,27 +517,26 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
         blurredImageView.autoresizingMask = [.width, .height]
         hoverOverlay.addSubview(blurredImageView)
 
-        let darkTint = NSView(frame: hoverOverlay.bounds)
-        darkTint.wantsLayer = true
-        darkTint.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.32).cgColor
-        darkTint.autoresizingMask = [.width, .height]
-        hoverOverlay.addSubview(darkTint)
+        hoverDarkTint.frame = hoverOverlay.bounds
+        hoverDarkTint.wantsLayer = true
+        hoverDarkTint.autoresizingMask = [.width, .height]
+        hoverOverlay.addSubview(hoverDarkTint)
 
         imageContainer.addSubview(hoverOverlay)
+        updateHoverOverlayAppearance()
 
-        Self.styleButton(copyButton)
         copyButton.target = self
         copyButton.action = #selector(handleCopyButton)
         imageContainer.addSubview(copyButton)
 
         if let button = frameButton {
-            Self.styleButton(button)
             button.target = self
             button.action = #selector(handleFrameButton)
             imageContainer.addSubview(button)
         }
 
         layoutButtons()
+        [frameButton, copyButton].compactMap { $0 }.forEach { $0.refreshAppearance() }
     }
 
     private func animateButtonLayout() {
@@ -597,14 +603,21 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
         return NSImage(cgImage: cg, size: image.size)
     }
 
-    private static func styleButton(_ button: HoverPillButton) {
-        button.layer?.borderColor = NSColor.black.withAlphaComponent(0.08).cgColor
-        button.layer?.borderWidth = 0.5
-        button.layer?.shadowColor = NSColor.black.cgColor
-        button.layer?.shadowOpacity = 0.18
-        button.layer?.shadowRadius = 6
-        button.layer?.shadowOffset = CGSize(width: 0, height: -1)
-        button.layer?.masksToBounds = false
+    private func updateHoverOverlayAppearance() {
+        let isDark = viewUsesDarkAppearance(self)
+        hoverDarkTint.layer?.backgroundColor = (
+            isDark
+                ? NSColor.white.withAlphaComponent(0.16)
+                : NSColor.black.withAlphaComponent(0.32)
+        ).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateHoverOverlayAppearance()
+        for button in [frameButton, copyButton].compactMap({ $0 }) {
+            button.refreshAppearance()
+        }
     }
 
     @available(*, unavailable)
@@ -869,6 +882,36 @@ private final class HoverPillButton: NSButton {
         layer?.addSublayer(titleLayer)
         title = ""
         attributedTitle = NSAttributedString()
+        refreshAppearance()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        refreshAppearance()
+    }
+
+    func refreshAppearance() {
+        let isDark = viewUsesDarkAppearance(self)
+        if isDark {
+            baseBackgroundColor = NSColor(white: 0.13, alpha: 0.94)
+            hoverBackgroundColor = NSColor(white: 0.20, alpha: 1.0)
+            pressedBackgroundColor = NSColor(white: 0.09, alpha: 0.82)
+            titleLayer.foregroundColor = NSColor(white: 0.96, alpha: 1.0).cgColor
+            layer?.borderColor = NSColor.white.withAlphaComponent(0.14).cgColor
+            layer?.shadowOpacity = 0.45
+        } else {
+            baseBackgroundColor = NSColor.white.withAlphaComponent(0.92)
+            hoverBackgroundColor = NSColor.white.withAlphaComponent(1.0)
+            pressedBackgroundColor = NSColor.white.withAlphaComponent(0.70)
+            titleLayer.foregroundColor = NSColor(white: 0.10, alpha: 0.92).cgColor
+            layer?.borderColor = NSColor.black.withAlphaComponent(0.08).cgColor
+            layer?.shadowOpacity = 0.18
+        }
+        layer?.borderWidth = 0.5
+        layer?.shadowColor = NSColor.black.cgColor
+        layer?.shadowRadius = 6
+        layer?.shadowOffset = CGSize(width: 0, height: -1)
+        layer?.masksToBounds = false
         applyBackground()
     }
 

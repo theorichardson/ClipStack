@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		00ECC2C717C840949927EF92 /* ClipboardEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = E955B7B5C9C6E8ACA5E86022 /* ClipboardEntry.swift */; };
+		03502058A8CF0B366DAA6A83 /* ScreenCoordinates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70A8B5FF4D77AD6603B7B6AC /* ScreenCoordinates.swift */; };
 		079748640601C18F13C6BBEA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 30E11364E2666F7E73C54D7D /* Assets.xcassets */; };
 		0A24537F5B347368530FDBC4 /* sequoia-light.png in Resources */ = {isa = PBXBuildFile; fileRef = C5A4D0737AA92751C8DF31B4 /* sequoia-light.png */; };
 		0FC71F0CF41DEE4DF86C4F9C /* ImageFramer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E1984BF89FE4C74F4F1A0D4 /* ImageFramer.swift */; };
@@ -40,6 +41,7 @@
 		9613F1716D3373FF6889099F /* WidthPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35D993017A2EAAEA9BE82F28 /* WidthPreset.swift */; };
 		996BDCDDA8359766AB3543F8 /* PresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8409B947DC3C998D3CD9C17 /* PresetStore.swift */; };
 		9E8F7D3C1EB5E415F9EC08BA /* RegionSelectorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F6D1475373E63AB7C1A246E /* RegionSelectorController.swift */; };
+		A8D4B01E1BD7234FE3C1D9A6 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 538EA44C3BFE920722E41DE5 /* Sparkle */; };
 		B02B9169D696DB9DC4F1A4B8 /* KeyboardNavigationHandlers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17889F6CA04E5C396C7D78F5 /* KeyboardNavigationHandlers.swift */; };
 		BB454437C3F80051E8C3C9D8 /* CaptureToastController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3685DAD64FB238C176B0E70A /* CaptureToastController.swift */; };
 		BBE15B6CAE232B302998F4F2 /* tiger.png in Resources */ = {isa = PBXBuildFile; fileRef = F241498E324524D80BEB11A0 /* tiger.png */; };
@@ -48,6 +50,7 @@
 		C7BC139F7D407DB2F420D39B /* ClipStackPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6AABD00AEE073CAE9811EF /* ClipStackPanelView.swift */; };
 		C80E5612FC4A0CCFC77CDDF0 /* SettingsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D54D28040278DA6DFB065A18 /* SettingsWindowController.swift */; };
 		CF197E6F5B0F8E83EE56A54B /* ScreenCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4388B968F70BE0DB4B91D8FC /* ScreenCaptureService.swift */; };
+		CF924FB4F6AD9009A22458E5 /* LastScreenshotRegionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F403C9196360A81507D28C9E /* LastScreenshotRegionStore.swift */; };
 		D4AE903AA4E50A924B5ED895 /* CapturePresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83BD87349207258D418C17A3 /* CapturePresetStore.swift */; };
 		D5E84197E3DDD3C07A6D4E1C /* WindowResizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F762A13D0729BE0BC9EE04 /* WindowResizer.swift */; };
 		D749DA8B8CC480EB8FCF20F8 /* tahoe-light.png in Resources */ = {isa = PBXBuildFile; fileRef = 63016E459E9FD41EA2FBE3EA /* tahoe-light.png */; };
@@ -91,6 +94,8 @@
 		5E6AABD00AEE073CAE9811EF /* ClipStackPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipStackPanelView.swift; sourceTree = "<group>"; };
 		62E40AE7A5000372F2127B77 /* ClipRenameBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipRenameBar.swift; sourceTree = "<group>"; };
 		63016E459E9FD41EA2FBE3EA /* tahoe-light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "tahoe-light.png"; sourceTree = "<group>"; };
+		63BA73FFE503436DF04B9B92 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		70A8B5FF4D77AD6603B7B6AC /* ScreenCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCoordinates.swift; sourceTree = "<group>"; };
 		83BD87349207258D418C17A3 /* CapturePresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePresetStore.swift; sourceTree = "<group>"; };
 		8AE633B1AF39F3084ACB13BD /* CaptureActionSymbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureActionSymbol.swift; sourceTree = "<group>"; };
 		8F6D1475373E63AB7C1A246E /* RegionSelectorController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegionSelectorController.swift; sourceTree = "<group>"; };
@@ -116,6 +121,7 @@
 		EB707BF16F382FDD1D5066E9 /* ManageCapturePresetsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageCapturePresetsWindowController.swift; sourceTree = "<group>"; };
 		F15A4ECCAA9A7372DB15A7E8 /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
 		F241498E324524D80BEB11A0 /* tiger.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = tiger.png; sourceTree = "<group>"; };
+		F403C9196360A81507D28C9E /* LastScreenshotRegionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LastScreenshotRegionStore.swift; sourceTree = "<group>"; };
 		F6F40FB1ED7600A64FB58F72 /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -125,6 +131,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F3646EF2FF0988FB75DE931F /* KeyboardShortcuts in Frameworks */,
+				A8D4B01E1BD7234FE3C1D9A6 /* Sparkle in Frameworks */,
 				1EFF696220EBC543548BE343 /* ScreenCaptureKit.framework in Frameworks */,
 				9493FCDFD69178AF175776CF /* AVFoundation.framework in Frameworks */,
 			);
@@ -156,6 +163,7 @@
 				30229873C44CC54400D1C744 /* Date+ClipFormatting.swift */,
 				C0A3A6CB12A150B55168B312 /* HotKeyManager.swift */,
 				DDDB9D2C18D138F6E4748D1A /* PanelController.swift */,
+				70A8B5FF4D77AD6603B7B6AC /* ScreenCoordinates.swift */,
 				D54D28040278DA6DFB065A18 /* SettingsWindowController.swift */,
 				B7B0A9FAC9A49162CEDB8615 /* WindowSnapHelper.swift */,
 			);
@@ -194,6 +202,7 @@
 				F15A4ECCAA9A7372DB15A7E8 /* ClipboardStore.swift */,
 				2065D000C3E4B9F1F899DD71 /* ClipEntryThumbnail.swift */,
 				1E1984BF89FE4C74F4F1A0D4 /* ImageFramer.swift */,
+				F403C9196360A81507D28C9E /* LastScreenshotRegionStore.swift */,
 				44F3CA1AD2F1332D79B48B79 /* PasteboardMonitor.swift */,
 				32F824237740C8E6395E793F /* PermissionManager.swift */,
 				B8409B947DC3C998D3CD9C17 /* PresetStore.swift */,
@@ -224,6 +233,7 @@
 				58E81A318D88EADB62857D1B /* AppDelegate.swift */,
 				30E11364E2666F7E73C54D7D /* Assets.xcassets */,
 				AB7DE0331C0F453CDD3AC81C /* ClipStack.entitlements */,
+				63BA73FFE503436DF04B9B92 /* Info.plist */,
 				4E415E4323B59400A70E83FC /* main.swift */,
 			);
 			path = ClipStack;
@@ -283,6 +293,7 @@
 			name = ClipStack;
 			packageProductDependencies = (
 				5053D96CBC31A6AC04EE4F07 /* KeyboardShortcuts */,
+				538EA44C3BFE920722E41DE5 /* Sparkle */,
 			);
 			productName = ClipStack;
 			productReference = 4AD33A9A1EA5E938B05C3DC9 /* ClipStack.app */;
@@ -314,6 +325,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A7108B7FE594E25184ED85FA /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				FEE189031EFD1A0660DC5C34 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 951A0C260ED952644B597EFC /* Products */;
@@ -368,6 +380,7 @@
 				48DF5A94E202473454236055 /* HotKeyManager.swift in Sources */,
 				0FC71F0CF41DEE4DF86C4F9C /* ImageFramer.swift in Sources */,
 				B02B9169D696DB9DC4F1A4B8 /* KeyboardNavigationHandlers.swift in Sources */,
+				CF924FB4F6AD9009A22458E5 /* LastScreenshotRegionStore.swift in Sources */,
 				DEFCE4914CFD3F8A2941DC91 /* ManageCapturePresetsWindowController.swift in Sources */,
 				866DBB21FA4CCFB4C64E5A91 /* ManagePresetsWindowController.swift in Sources */,
 				37D6F3FC76FF24596F96AE08 /* PanelController.swift in Sources */,
@@ -380,6 +393,7 @@
 				9E8F7D3C1EB5E415F9EC08BA /* RegionSelectorController.swift in Sources */,
 				6E48E6171AF82A3A84A0F143 /* RowClickHandling.swift in Sources */,
 				CF197E6F5B0F8E83EE56A54B /* ScreenCaptureService.swift in Sources */,
+				03502058A8CF0B366DAA6A83 /* ScreenCoordinates.swift in Sources */,
 				C80E5612FC4A0CCFC77CDDF0 /* SettingsWindowController.swift in Sources */,
 				269C24D2B3A12EB25C0D28C5 /* StatusBarPopoverController.swift in Sources */,
 				3917EB1DFD9B6583E7AF255F /* WallpaperFrame.swift in Sources */,
@@ -464,7 +478,6 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = ClipStack/ClipStack.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -472,13 +485,8 @@
 				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = ClipStack;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_LSMinimumSystemVersion = 14.0;
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAccessibilityUsageDescription = "ClipStack needs Accessibility access to read and resize other app windows.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Theodore Richardson. All rights reserved.";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ClipStack/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -504,13 +512,8 @@
 				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = ClipStack;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_LSMinimumSystemVersion = 14.0;
-				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAccessibilityUsageDescription = "ClipStack needs Accessibility access to read and resize other app windows.";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Theodore Richardson. All rights reserved.";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ClipStack/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -611,6 +614,14 @@
 				minimumVersion = 2.2.0;
 			};
 		};
+		FEE189031EFD1A0660DC5C34 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -618,6 +629,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A7108B7FE594E25184ED85FA /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
 			productName = KeyboardShortcuts;
+		};
+		538EA44C3BFE920722E41DE5 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FEE189031EFD1A0660DC5C34 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

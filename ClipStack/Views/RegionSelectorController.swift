@@ -2,29 +2,70 @@ import AppKit
 import CoreText
 import ScreenCaptureKit
 
+enum RegionSelectionIntent {
+    case screenshot
+    case record
+}
+
+enum RegionSelectionResult {
+    case cancelled
+    case screenshot(CaptureRegion)
+    case record(CaptureRegion)
+}
+
 @MainActor
 final class RegionSelectorController {
     static let shared = RegionSelectorController()
 
     private var windows: [NSWindow] = []
-    private var completion: ((CaptureRegion?) -> Void)?
+    private var selectionViews: [RegionSelectionView] = []
+    private var globalSelectionRect: CGRect = .zero
+    private var localKeyMonitor: Any?
+    private var globalKeyMonitor: Any?
+    private var completion: ((RegionSelectionResult) -> Void)?
+    private var persistRegionOnDismiss = false
+    private var isModalSuspended = false
 
     private init() {}
 
     func beginSelection(
+        intent: RegionSelectionIntent = .screenshot,
+        initialRegion: CaptureRegion? = nil,
+        persistRegionOnDismiss: Bool = false,
         onSaveRegion: ((CaptureRegion, @escaping () -> Void) -> Void)? = nil,
-        completion: @escaping (CaptureRegion?) -> Void
+        completion: @escaping (RegionSelectionResult) -> Void
     ) {
         guard windows.isEmpty else { return }
 
         self.completion = completion
+        self.persistRegionOnDismiss = persistRegionOnDismiss
 
-        let cursor = NSEvent.mouseLocation
-        let activeScreen = NSScreen.screens.first(where: { $0.frame.contains(cursor) })
-            ?? NSScreen.main
-            ?? NSScreen.screens.first
+        let activeScreen: NSScreen?
+        if let initialRegion {
+            globalSelectionRect = Self.clampInitialRegion(initialRegion.cocoaRect)
+            activeScreen = ScreenCoordinates.screen(
+                containingCocoaPoint: CGPoint(x: globalSelectionRect.midX, y: globalSelectionRect.midY)
+            )
+                ?? NSScreen.main
+                ?? NSScreen.screens.first
+        } else {
+            let cursor = NSEvent.mouseLocation
+            activeScreen = ScreenCoordinates.screen(containingCocoaPoint: cursor)
+                ?? NSScreen.main
+                ?? NSScreen.screens.first
+            let activeFrame = activeScreen?.frame ?? ScreenCoordinates.desktopBounds
 
-        var selectionView: RegionSelectionView?
+            let initialWidth = min(900, activeFrame.width * 0.5)
+            let initialHeight = min(560, activeFrame.height * 0.5)
+            globalSelectionRect = CGRect(
+                x: activeFrame.midX - initialWidth / 2,
+                y: activeFrame.midY - initialHeight / 2,
+                width: initialWidth,
+                height: initialHeight
+            )
+        }
+
+        var keyWindow: NSWindow?
 
         for screen in NSScreen.screens {
             let window = KeyableBorderlessWindow(
@@ -39,30 +80,42 @@ final class RegionSelectorController {
             window.level = .screenSaver
             window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-            if screen == activeScreen {
-                let view = RegionSelectionView(
-                    onSaveRegion: { [weak window] region, done in
-                        guard let onSaveRegion else { done(); return }
-                        onSaveRegion(region) { [weak window] in
-                            done()
-                            window?.makeKeyAndOrderFront(nil)
-                        }
-                    },
-                    onComplete: { [weak self] region in
-                        self?.finish(with: region)
+            let view = RegionSelectionView(
+                intent: intent,
+                screenFrame: screen.frame,
+                getGlobalSelection: { [weak self] in self?.globalSelectionRect ?? .zero },
+                setGlobalSelection: { [weak self] rect in
+                    self?.globalSelectionRect = rect
+                },
+                onSelectionChanged: { [weak self] in
+                    self?.selectionViews.forEach { $0.refreshSelection() }
+                },
+                onSaveRegion: { [weak self] region, done in
+                    guard let self, let onSaveRegion else { done(); return }
+                    guard !self.windows.isEmpty else {
+                        done()
+                        return
                     }
-                )
-                window.contentView = view
-                window.ignoresMouseEvents = false
-                window.makeKeyAndOrderFront(nil)
-                selectionView = view
-            } else {
-                let view = DimView()
-                window.contentView = view
-                window.ignoresMouseEvents = true
-                window.orderFrontRegardless()
-            }
+                    self.isModalSuspended = true
+                    onSaveRegion(region) { [weak self] in
+                        self?.isModalSuspended = false
+                        done()
+                        self?.restoreInteraction()
+                    }
+                },
+                onComplete: { [weak self] result in
+                    self?.finish(with: result)
+                }
+            )
+            window.contentView = view
+            window.ignoresMouseEvents = false
+            window.orderFrontRegardless()
+            selectionViews.append(view)
             windows.append(window)
+
+            if screen == activeScreen {
+                keyWindow = window
+            }
         }
 
         let excludedOverlayIDs = Set(windows.compactMap { overlay in
@@ -71,36 +124,113 @@ final class RegionSelectorController {
         })
 
         NSApp.activate(ignoringOtherApps: true)
+        keyWindow?.makeKeyAndOrderFront(nil)
+        keyWindow?.makeFirstResponder(keyWindow?.contentView)
+        installKeyMonitors()
 
         Task {
             let snapWindows = (try? await ScreenCaptureService.shared.availableWindows()) ?? []
-            selectionView?.setSnapWindows(snapWindows, excluding: excludedOverlayIDs)
+            selectionViews.forEach { $0.setSnapWindows(snapWindows, excluding: excludedOverlayIDs) }
         }
     }
 
     func cancel() {
-        finish(with: nil)
+        finish(with: .cancelled)
     }
 
-    private func finish(with region: CaptureRegion?) {
+    private func restoreInteraction() {
+        guard !windows.isEmpty else { return }
+
+        NSApp.activate(ignoringOtherApps: true)
+
+        let focusPoint = CGPoint(x: globalSelectionRect.midX, y: globalSelectionRect.midY)
+        let activeScreen = ScreenCoordinates.screen(containingCocoaPoint: focusPoint)
+            ?? NSScreen.main
+
+        for window in windows {
+            window.orderFrontRegardless()
+        }
+
+        if let activeScreen,
+           let keyWindow = windows.first(where: { $0.screen == activeScreen }) {
+            keyWindow.makeKeyAndOrderFront(nil)
+            keyWindow.makeFirstResponder(keyWindow.contentView)
+        } else if let keyWindow = windows.first {
+            keyWindow.makeKeyAndOrderFront(nil)
+            keyWindow.makeFirstResponder(keyWindow.contentView)
+        }
+
+        selectionViews.forEach { $0.refreshSelection() }
+    }
+
+    private func installKeyMonitors() {
+        globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+            guard event.keyCode == 53 else { return }
+            Task { @MainActor in
+                guard let self, !self.isModalSuspended else { return }
+                self.finish(with: .cancelled)
+            }
+        }
+
+        localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
+            guard let self else { return event }
+            if event.keyCode == 53 {
+                if self.isModalSuspended {
+                    return event
+                }
+                self.finish(with: .cancelled)
+                return nil
+            }
+            return event
+        }
+    }
+
+    private func removeKeyMonitors() {
+        if let monitor = globalKeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalKeyMonitor = nil
+        }
+        if let monitor = localKeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            localKeyMonitor = nil
+        }
+    }
+
+    private func finish(with result: RegionSelectionResult) {
+        isModalSuspended = false
+
+        if persistRegionOnDismiss {
+            let current = globalSelectionRect
+            if current.width >= 20, current.height >= 20 {
+                LastScreenshotRegionStore.shared.save(CaptureRegion(rect: current))
+            }
+        }
+        persistRegionOnDismiss = false
+
+        removeKeyMonitors()
         windows.forEach { $0.orderOut(nil) }
         windows.removeAll()
+        selectionViews.removeAll()
         let callback = completion
         completion = nil
-        callback?(region)
+        callback?(result)
+    }
+
+    private static func clampInitialRegion(_ rect: CGRect) -> CGRect {
+        let desktop = ScreenCoordinates.desktopBounds
+        let minSize: CGFloat = 20
+        var r = rect
+        r.size.width = max(minSize, min(r.width, desktop.width))
+        r.size.height = max(minSize, min(r.height, desktop.height))
+        r.origin.x = max(desktop.minX, min(r.origin.x, desktop.maxX - r.width))
+        r.origin.y = max(desktop.minY, min(r.origin.y, desktop.maxY - r.height))
+        return r
     }
 }
 
 private final class KeyableBorderlessWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
-}
-
-private final class DimView: NSView {
-    override func draw(_ dirtyRect: NSRect) {
-        NSColor.black.withAlphaComponent(0.25).setFill()
-        bounds.fill()
-    }
 }
 
 private final class RegionBadgeLabelView: NSView {
@@ -135,10 +265,14 @@ private enum DragMode {
 }
 
 private final class RegionSelectionView: NSView {
+    private let intent: RegionSelectionIntent
+    private let screenFrame: CGRect
+    private let getGlobalSelection: () -> CGRect
+    private let setGlobalSelection: (CGRect) -> Void
+    private let onSelectionChanged: () -> Void
     private let onSaveRegion: (CaptureRegion, @escaping () -> Void) -> Void
-    private let onComplete: (CaptureRegion?) -> Void
+    private let onComplete: (RegionSelectionResult) -> Void
 
-    private var selectionRect: CGRect = .zero
     private var snapWindows: [SCWindow] = []
     private var excludedOverlayIDs: Set<CGWindowID> = []
     private var snapModifierHeld = false
@@ -149,7 +283,11 @@ private final class RegionSelectionView: NSView {
 
     private var dragMode: DragMode = .none
     private var dragStart: CGPoint = .zero
-    private var dragStartRect: CGRect = .zero
+    private var dragStartGlobalRect: CGRect = .zero
+
+    private var selectionRect: CGRect {
+        ScreenCoordinates.localRect(forGlobalCocoa: getGlobalSelection(), on: screenFrame)
+    }
 
     private let badgeEffectView: NSVisualEffectView = {
         let view = NSVisualEffectView()
@@ -167,20 +305,55 @@ private final class RegionSelectionView: NSView {
 
     private let badgeLabel = RegionBadgeLabelView()
 
+    private let presetPopup: NSPopUpButton = {
+        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        popup.bezelStyle = .inline
+        popup.isBordered = false
+        popup.font = NSFont.systemFont(ofSize: 13, weight: .regular)
+        popup.toolTip = "Move selection to a saved region"
+        if let cell = popup.cell as? NSPopUpButtonCell {
+            cell.backgroundColor = .clear
+            cell.isBordered = false
+        }
+        return popup
+    }()
+
     private var badgeConfigured = false
+    private var presetObserver: NSObjectProtocol?
+
+    deinit {
+        if let presetObserver {
+            NotificationCenter.default.removeObserver(presetObserver)
+        }
+    }
 
     init(
+        intent: RegionSelectionIntent,
+        screenFrame: CGRect,
+        getGlobalSelection: @escaping () -> CGRect,
+        setGlobalSelection: @escaping (CGRect) -> Void,
+        onSelectionChanged: @escaping () -> Void,
         onSaveRegion: @escaping (CaptureRegion, @escaping () -> Void) -> Void,
-        onComplete: @escaping (CaptureRegion?) -> Void
+        onComplete: @escaping (RegionSelectionResult) -> Void
     ) {
+        self.intent = intent
+        self.screenFrame = screenFrame
+        self.getGlobalSelection = getGlobalSelection
+        self.setGlobalSelection = setGlobalSelection
+        self.onSelectionChanged = onSelectionChanged
         self.onSaveRegion = onSaveRegion
         self.onComplete = onComplete
-        super.init(frame: .zero)
+        super.init(frame: CGRect(origin: .zero, size: screenFrame.size))
     }
 
     func setSnapWindows(_ windows: [SCWindow], excluding excludedIDs: Set<CGWindowID>) {
         snapWindows = windows
         excludedOverlayIDs = excludedIDs
+        refreshSelection()
+    }
+
+    func refreshSelection() {
+        resetCursorRects()
         needsDisplay = true
     }
 
@@ -193,16 +366,6 @@ private final class RegionSelectionView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         window?.makeFirstResponder(self)
-        if selectionRect == .zero {
-            let w: CGFloat = min(900, bounds.width * 0.5)
-            let h: CGFloat = min(560, bounds.height * 0.5)
-            selectionRect = CGRect(
-                x: (bounds.width - w) / 2,
-                y: (bounds.height - h) / 2,
-                width: w,
-                height: h
-            )
-        }
         resetCursorRects()
         needsDisplay = true
     }
@@ -216,9 +379,11 @@ private final class RegionSelectionView: NSView {
     override func keyDown(with event: NSEvent) {
         switch event.keyCode {
         case 53:
-            onComplete(nil)
+            onComplete(.cancelled)
         case 36, 76:
-            confirmSelection()
+            confirmSelection(as: intent == .record ? .record : .screenshot)
+        case 15 where intent == .screenshot:
+            confirmSelection(as: .record)
         case 1:
             requestSaveRegion()
         default:
@@ -227,19 +392,26 @@ private final class RegionSelectionView: NSView {
     }
 
     private func currentRegion() -> CaptureRegion? {
-        guard selectionRect.width >= minSize, selectionRect.height >= minSize else { return nil }
-        let windowRect = convert(selectionRect, to: nil)
-        guard let window else { return nil }
-        let screenRect = window.convertToScreen(windowRect)
-        return CaptureRegion(rect: screenRect)
+        let global = getGlobalSelection()
+        guard global.width >= minSize, global.height >= minSize else { return nil }
+        return CaptureRegion(rect: global)
     }
 
     private func requestSaveRegion() {
         guard !isSaving, let region = currentRegion() else { return }
         isSaving = true
-        onSaveRegion(region) { [weak self] in
-            self?.isSaving = false
-            self?.needsDisplay = true
+        // Defer out of keyDown before presenting a modal alert; runModal from
+        // inside keyDown leaves keyboard focus broken afterward.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            guard self.window != nil else {
+                self.isSaving = false
+                return
+            }
+            self.onSaveRegion(region) { [weak self] in
+                self?.isSaving = false
+                self?.needsDisplay = true
+            }
         }
     }
 
@@ -250,18 +422,28 @@ private final class RegionSelectionView: NSView {
         needsDisplay = true
     }
 
-    private func confirmSelection() {
+    private func confirmSelection(as action: RegionSelectionConfirmAction) {
         guard let region = currentRegion() else {
-            onComplete(nil)
+            onComplete(.cancelled)
             return
         }
-        onComplete(region)
+        switch action {
+        case .screenshot:
+            onComplete(.screenshot(region))
+        case .record:
+            onComplete(.record(region))
+        }
+    }
+
+    private enum RegionSelectionConfirmAction {
+        case screenshot
+        case record
     }
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         dragStart = point
-        dragStartRect = selectionRect
+        dragStartGlobalRect = getGlobalSelection()
 
         let edges = edgesForResize(at: point)
         if !edges.isEmpty {
@@ -283,35 +465,36 @@ private final class RegionSelectionView: NSView {
         case .none:
             return
         case .move:
-            var newRect = dragStartRect
-            newRect.origin.x = clamp(dragStartRect.origin.x + dx, lower: 0, upper: bounds.width - dragStartRect.width)
-            newRect.origin.y = clamp(dragStartRect.origin.y + dy, lower: 0, upper: bounds.height - dragStartRect.height)
-            selectionRect = applySnapIfNeeded(to: newRect, cursorLocal: point, resizeEdges: nil)
+            var global = dragStartGlobalRect
+            global.origin.x += dx
+            global.origin.y += dy
+            global = applySnapIfNeeded(to: global, cursorLocal: point, resizeEdges: nil)
+            setGlobalSelection(clampGlobal(global))
+            onSelectionChanged()
         case .resize(let edges):
-            var r = dragStartRect
+            var global = dragStartGlobalRect
             if edges.contains(.left) {
-                let newX = min(dragStartRect.maxX - minSize, max(0, dragStartRect.origin.x + dx))
-                r.size.width = dragStartRect.maxX - newX
-                r.origin.x = newX
+                let newX = min(dragStartGlobalRect.maxX - minSize, dragStartGlobalRect.origin.x + dx)
+                global.size.width = dragStartGlobalRect.maxX - newX
+                global.origin.x = newX
             }
             if edges.contains(.right) {
-                let newW = max(minSize, min(bounds.width - dragStartRect.origin.x, dragStartRect.width + dx))
-                r.size.width = newW
+                global.size.width = max(minSize, dragStartGlobalRect.width + dx)
             }
             if edges.contains(.bottom) {
-                let newY = min(dragStartRect.maxY - minSize, max(0, dragStartRect.origin.y + dy))
-                r.size.height = dragStartRect.maxY - newY
-                r.origin.y = newY
+                let newY = min(dragStartGlobalRect.maxY - minSize, dragStartGlobalRect.origin.y + dy)
+                global.size.height = dragStartGlobalRect.maxY - newY
+                global.origin.y = newY
             }
             if edges.contains(.top) {
-                let newH = max(minSize, min(bounds.height - dragStartRect.origin.y, dragStartRect.height + dy))
-                r.size.height = newH
+                global.size.height = max(minSize, dragStartGlobalRect.height + dy)
             }
-            selectionRect = applySnapIfNeeded(to: r, cursorLocal: point, resizeEdges: edges)
+            global = applySnapIfNeeded(to: global, cursorLocal: point, resizeEdges: edges)
+            setGlobalSelection(clampGlobal(global))
+            onSelectionChanged()
         }
 
         window?.invalidateCursorRects(for: self)
-        needsDisplay = true
     }
 
     override func mouseUp(with event: NSEvent) {
@@ -362,39 +545,64 @@ private final class RegionSelectionView: NSView {
     }
 
     private func applySnapIfNeeded(
-        to rect: CGRect,
+        to globalRect: CGRect,
         cursorLocal: CGPoint,
         resizeEdges: WindowSnapEdges?
     ) -> CGRect {
         guard WindowSnapHelper.isSnapModifierHeld(NSEvent.modifierFlags), !snapWindows.isEmpty else {
-            return rect
+            return globalRect
         }
 
-        let screenFrame = window?.frame ?? bounds
+        var local = ScreenCoordinates.localRect(forGlobalCocoa: globalRect, on: screenFrame)
 
         if resizeEdges == nil,
-           let windowRect = WindowSnapHelper.snapToWindowUnderCursor(
+           let snappedLocal = WindowSnapHelper.snapToWindowUnderCursor(
                cursorLocal: cursorLocal,
                screenFrame: screenFrame,
                windows: snapWindows,
                excluding: excludedOverlayIDs,
                minSize: minSize
            ) {
-            return windowRect
-        }
-
-        if let resizeEdges, !resizeEdges.isEmpty {
+            local = snappedLocal
+        } else if let resizeEdges, !resizeEdges.isEmpty {
             let windowFrames = WindowSnapHelper.windowLocalFrames(from: snapWindows, on: screenFrame)
-            return WindowSnapHelper.snapResizeEdges(
-                of: rect,
+            local = WindowSnapHelper.snapResizeEdges(
+                of: local,
                 to: windowFrames,
                 activeEdges: resizeEdges,
                 minSize: minSize,
                 bounds: bounds
             )
+        } else {
+            return globalRect
         }
 
-        return rect
+        return CGRect(
+            x: screenFrame.origin.x + local.origin.x,
+            y: screenFrame.origin.y + local.origin.y,
+            width: local.width,
+            height: local.height
+        )
+    }
+
+    private func clampGlobal(_ rect: CGRect) -> CGRect {
+        let desktop = ScreenCoordinates.desktopBounds
+        var r = rect
+        r.size.width = max(minSize, r.width)
+        r.size.height = max(minSize, r.height)
+        r.origin.x = max(desktop.minX, min(r.origin.x, desktop.maxX - r.width))
+        r.origin.y = max(desktop.minY, min(r.origin.y, desktop.maxY - r.height))
+        return r
+    }
+
+    private func visibleSelectionRect() -> CGRect {
+        selectionRect.intersection(bounds)
+    }
+
+    private func shouldShowBadge() -> Bool {
+        let global = getGlobalSelection()
+        let anchor = CGPoint(x: global.midX, y: global.maxY)
+        return screenFrame.contains(anchor)
     }
 
     private var trackingArea: NSTrackingArea?
@@ -412,25 +620,31 @@ private final class RegionSelectionView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
+        let visible = visibleSelectionRect()
+
         let dimPath = NSBezierPath(rect: bounds)
-        if selectionRect.width > 0, selectionRect.height > 0 {
-            dimPath.appendRect(selectionRect)
+        if !visible.isNull, visible.width > 0, visible.height > 0 {
+            dimPath.appendRect(visible)
         }
         dimPath.windingRule = .evenOdd
         NSColor.black.withAlphaComponent(0.35).setFill()
         dimPath.fill()
 
-        guard selectionRect.width > 0, selectionRect.height > 0 else { return }
+        guard !visible.isNull, visible.width > 0, visible.height > 0 else { return }
 
         let snapActive = snapModifierHeld || WindowSnapHelper.isSnapModifierHeld(NSEvent.modifierFlags)
         let strokeColor: NSColor = snapActive ? .systemOrange : .systemBlue
         strokeColor.setStroke()
-        let path = NSBezierPath(rect: selectionRect)
+        let path = NSBezierPath(rect: visible)
         path.lineWidth = snapActive ? 2 : 1
         path.stroke()
 
-        drawHandles(strokeColor: strokeColor)
-        updateBadge()
+        drawHandles(strokeColor: strokeColor, in: visible)
+        if shouldShowBadge() {
+            updateBadge()
+        } else {
+            badgeEffectView.isHidden = true
+        }
     }
 
     private func configureBadgeIfNeeded() {
@@ -438,10 +652,57 @@ private final class RegionSelectionView: NSView {
         badgeConfigured = true
         addSubview(badgeEffectView)
         badgeEffectView.addSubview(badgeLabel)
+        badgeEffectView.addSubview(presetPopup)
+        presetPopup.target = self
+        presetPopup.action = #selector(presetPopupChanged(_:))
+        refreshPresetPopup()
+        presetObserver = NotificationCenter.default.addObserver(
+            forName: .capturePresetsDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshPresetPopup()
+            self?.needsDisplay = true
+        }
+    }
+
+    private func refreshPresetPopup() {
+        presetPopup.removeAllItems()
+        presetPopup.addItem(withTitle: "Choose region")
+
+        let presets = CapturePresetStore.shared.presets
+        if presets.isEmpty {
+            let item = NSMenuItem(title: "No saved regions yet", action: nil, keyEquivalent: "")
+            item.isEnabled = false
+            presetPopup.menu?.addItem(item)
+            presetPopup.isEnabled = false
+        } else {
+            presetPopup.isEnabled = true
+            for preset in presets {
+                let item = NSMenuItem(title: preset.name, action: nil, keyEquivalent: "")
+                item.representedObject = preset.id
+                presetPopup.menu?.addItem(item)
+            }
+        }
+
+        presetPopup.selectItem(at: 0)
+    }
+
+    @objc private func presetPopupChanged(_ sender: NSPopUpButton) {
+        guard sender.indexOfSelectedItem > 0,
+              let id = sender.selectedItem?.representedObject as? UUID,
+              let preset = CapturePresetStore.shared.presets.first(where: { $0.id == id })
+        else { return }
+
+        setGlobalSelection(clampGlobal(preset.region.cocoaRect))
+        onSelectionChanged()
+        sender.selectItem(at: 0)
+        needsDisplay = true
     }
 
     private func updateBadge() {
-        guard selectionRect.width > 0, selectionRect.height > 0 else {
+        let rect = selectionRect
+        guard rect.width > 0, rect.height > 0 else {
             badgeEffectView.isHidden = true
             return
         }
@@ -450,14 +711,25 @@ private final class RegionSelectionView: NSView {
         badgeEffectView.isHidden = false
 
         let snapActive = snapModifierHeld || WindowSnapHelper.isSnapModifierHeld(NSEvent.modifierFlags)
-        let attributed = badgeAttributedString(snapActive: snapActive)
+        let global = getGlobalSelection()
+        let attributed = badgeAttributedString(
+            snapActive: snapActive,
+            width: Int(global.width),
+            height: Int(global.height)
+        )
         badgeLabel.attributedText = attributed
 
         let padding = NSEdgeInsets(top: 4, left: 12, bottom: 4, right: 12)
+        let spacing: CGFloat = 8
         let textSize = badgeLabel.fittingSize()
+        presetPopup.sizeToFit()
+        let popupSize = presetPopup.frame.size
+        let popupWidth = popupSize.width
+        let popupHeight = max(18, popupSize.height)
+        let contentHeight = max(textSize.height, popupHeight)
         let bgSize = CGSize(
-            width: textSize.width + padding.left + padding.right,
-            height: textSize.height + padding.top + padding.bottom
+            width: padding.left + textSize.width + spacing + popupWidth + padding.right,
+            height: contentHeight + padding.top + padding.bottom
         )
 
         let aboveY = selectionRect.maxY + 8
@@ -469,17 +741,23 @@ private final class RegionSelectionView: NSView {
         badgeEffectView.frame = bgRect
         badgeLabel.frame = CGRect(
             x: padding.left,
-            y: padding.bottom,
+            y: padding.bottom + (contentHeight - textSize.height) / 2,
             width: textSize.width,
             height: textSize.height
+        )
+        presetPopup.frame = CGRect(
+            x: padding.left + textSize.width + spacing,
+            y: padding.bottom + (contentHeight - popupHeight) / 2,
+            width: popupWidth,
+            height: popupHeight
         )
         badgeLabel.needsDisplay = true
     }
 
-    private func badgeAttributedString(snapActive: Bool) -> NSAttributedString {
+    private func badgeAttributedString(snapActive: Bool, width: Int, height: Int) -> NSAttributedString {
         let result = NSMutableAttributedString()
 
-        let sizeText = "\(Int(selectionRect.width)) × \(Int(selectionRect.height))"
+        let sizeText = "\(width) × \(height)"
         result.append(NSAttributedString(string: sizeText, attributes: [
             .font: NSFont.systemFont(ofSize: 13, weight: .semibold),
             .foregroundColor: NSColor.labelColor,
@@ -497,7 +775,11 @@ private final class RegionSelectionView: NSView {
             ]))
         }
 
-        result.append(NSAttributedString(string: "  ↩ Capture · S Save Region · Esc Cancel", attributes: [
+        result.append(NSAttributedString(
+            string: intent == .screenshot
+                ? "  ↩ Capture · R Record · S Save Region · Esc Cancel"
+                : "  ↩ Record · S Save Region · Esc Cancel",
+            attributes: [
             .font: NSFont.systemFont(ofSize: 13, weight: .regular),
             .foregroundColor: NSColor.labelColor,
         ]))
@@ -505,7 +787,7 @@ private final class RegionSelectionView: NSView {
         return result
     }
 
-    private func drawHandles(strokeColor: NSColor) {
+    private func drawHandles(strokeColor: NSColor, in visible: CGRect) {
         let r = selectionRect
         let s = handleSize
         let half = s / 2
@@ -521,6 +803,7 @@ private final class RegionSelectionView: NSView {
         ]
         for p in points {
             let rect = CGRect(x: p.x - half, y: p.y - half, width: s, height: s)
+            guard visible.insetBy(dx: -half, dy: -half).intersects(rect) else { continue }
             NSColor.white.setFill()
             NSBezierPath(ovalIn: rect).fill()
             strokeColor.setStroke()

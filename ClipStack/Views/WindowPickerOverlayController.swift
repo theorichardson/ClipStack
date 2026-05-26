@@ -142,36 +142,32 @@ final class WindowPickerOverlayController {
     /// Called from each overlay on mouseMoved. `globalPoint` is in Cocoa
     /// global screen coordinates.
     fileprivate func handleHover(globalPoint: CGPoint) {
-        guard let primary = NSScreen.screens.first else { return }
-        let primaryHeight = primary.frame.height
-        // Convert Cocoa (origin bottom-left of primary) → Quartz (origin
-        // top-left of primary) for CGWindowList lookups.
-        let quartzPoint = CGPoint(x: globalPoint.x, y: primaryHeight - globalPoint.y)
-
+        let quartzPoint = ScreenCoordinates.cocoaToQuartz(globalPoint)
         let topWindow = topmostWindow(at: quartzPoint)
 
         for overlay in overlays {
-            if let topWindow {
-                let cocoaFrame = cocoaFrame(forQuartzFrame: topWindow.frame, primaryHeight: primaryHeight)
-                let windowOrigin = overlay.window.frame.origin
-                let localRect = CGRect(
-                    x: cocoaFrame.origin.x - windowOrigin.x,
-                    y: cocoaFrame.origin.y - windowOrigin.y,
-                    width: cocoaFrame.width,
-                    height: cocoaFrame.height
-                )
-                overlay.view.setHighlight(rect: localRect, label: badgeAttributedString(for: topWindow))
-            } else {
+            guard let topWindow else {
                 overlay.view.setHighlight(rect: nil, label: nil)
+                continue
             }
+
+            let cocoaFrame = ScreenCoordinates.quartzToCocoa(topWindow.frame)
+            let localRect = ScreenCoordinates.localRect(
+                forGlobalCocoa: cocoaFrame,
+                on: overlay.window.frame
+            )
+            let visible = localRect.intersection(overlay.view.bounds)
+            guard !visible.isNull, visible.width > 0, visible.height > 0 else {
+                overlay.view.setHighlight(rect: nil, label: nil)
+                continue
+            }
+
+            overlay.view.setHighlight(rect: localRect, label: badgeAttributedString(for: topWindow))
         }
     }
 
     private func handleClick() {
-        guard let primary = NSScreen.screens.first else { finish(with: nil); return }
-        let primaryHeight = primary.frame.height
-        let cocoa = NSEvent.mouseLocation
-        let quartz = CGPoint(x: cocoa.x, y: primaryHeight - cocoa.y)
+        let quartz = ScreenCoordinates.cocoaToQuartz(NSEvent.mouseLocation)
 
         guard let chosen = topmostWindow(at: quartz) else {
             // Click missed any pickable window — keep picking.
@@ -215,15 +211,6 @@ final class WindowPickerOverlayController {
             // for the specific window) — keep walking back.
         }
         return nil
-    }
-
-    private func cocoaFrame(forQuartzFrame frame: CGRect, primaryHeight: CGFloat) -> CGRect {
-        CGRect(
-            x: frame.origin.x,
-            y: primaryHeight - frame.origin.y - frame.height,
-            width: frame.width,
-            height: frame.height
-        )
     }
 
     private func badgeAttributedString(for window: SCWindow) -> NSAttributedString {

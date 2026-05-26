@@ -763,16 +763,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         popoverController?.close()
         Task { await ensureScreenCaptureRegisteredOrPrompt() }
         RegionSelectorController.shared.beginSelection(
+            intent: mode == .screenshot ? .screenshot : .record,
+            initialRegion: mode == .screenshot ? LastScreenshotRegionStore.shared.region : nil,
+            persistRegionOnDismiss: mode == .screenshot,
             onSaveRegion: { [weak self] region, done in
                 self?.promptToSaveCapturePreset(region: region)
                 done()
             },
-            completion: { [weak self] region in
-                guard let self, let region else { return }
-                switch mode {
-                case .screenshot:
+            completion: { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .cancelled:
+                    return
+                case .screenshot(let region):
                     Task { await self.finishSelectedRegionScreenshot(region) }
-                case .record:
+                case .record(let region):
                     Task { await self.finishSelectedRegionRecording(region) }
                 }
             }

@@ -97,7 +97,7 @@ final class ScreenCaptureService {
         }
 
         let scale = screenScale(for: region) ?? 2.0
-        let sourceRect = region.sourceRect(on: display.frame)
+        let sourceRect = ScreenCoordinates.sourceRect(forCocoaRegion: region.cocoaRect, onQuartzDisplayFrame: display.frame)
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let configuration = SCStreamConfiguration()
@@ -285,7 +285,7 @@ final class ScreenCaptureService {
         }
 
         let scale = screenScale(for: region) ?? 2.0
-        let sourceRect = region.sourceRect(on: display.frame)
+        let sourceRect = ScreenCoordinates.sourceRect(forCocoaRegion: region.cocoaRect, onQuartzDisplayFrame: display.frame)
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let configuration = SCStreamConfiguration()
@@ -340,14 +340,14 @@ final class ScreenCaptureService {
     }
 
     private func display(for region: CaptureRegion, in content: SCShareableContent) -> SCDisplay? {
-        let rect = region.cocoaRect
-        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let quartzRect = ScreenCoordinates.cocoaToQuartz(region.cocoaRect)
+        let center = CGPoint(x: quartzRect.midX, y: quartzRect.midY)
 
         if let match = content.displays.first(where: { $0.frame.contains(center) }) {
             return match
         }
 
-        return content.displays.first(where: { $0.frame.intersects(rect) })
+        return content.displays.first(where: { $0.frame.intersects(quartzRect) })
             ?? content.displays.first
     }
 
@@ -357,17 +357,11 @@ final class ScreenCaptureService {
     }
 
     private func screenScale(forWindow window: SCWindow) -> CGFloat? {
-        // SCWindow.frame is in Quartz (top-left) global coordinates. Convert
-        // its center into Cocoa coordinates by flipping over the primary
-        // display, then locate the containing NSScreen.
-        guard let primary = NSScreen.screens.first else { return nil }
-        let primaryHeight = primary.frame.height
-        let quartzCenter = CGPoint(x: window.frame.midX, y: window.frame.midY)
-        let cocoaCenter = CGPoint(x: quartzCenter.x, y: primaryHeight - quartzCenter.y)
-        if let exact = NSScreen.screens.first(where: { $0.frame.contains(cocoaCenter) }) {
+        let cocoaCenter = ScreenCoordinates.quartzToCocoa(CGPoint(x: window.frame.midX, y: window.frame.midY))
+        if let exact = ScreenCoordinates.screen(containingCocoaPoint: cocoaCenter) {
             return exact.backingScaleFactor
         }
-        return primary.backingScaleFactor
+        return NSScreen.screens.first?.backingScaleFactor
     }
 
     private func saveScreenshot(_ image: CGImage, name: String) throws -> URL {

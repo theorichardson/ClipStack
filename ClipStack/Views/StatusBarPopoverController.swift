@@ -189,9 +189,7 @@ final class StatusBarPopoverController: NSObject, NSPopoverDelegate {
     }
 
     private func makeDivider() -> NSView {
-        let v = NSView()
-        v.wantsLayer = true
-        v.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        let v = DividerView()
         v.translatesAutoresizingMaskIntoConstraints = false
         v.widthAnchor.constraint(equalToConstant: 1).isActive = true
         v.heightAnchor.constraint(equalToConstant: 32).isActive = true
@@ -371,5 +369,36 @@ final class IconBarCell: NSControl {
         } else {
             layer?.backgroundColor = NSColor.clear.cgColor
         }
+    }
+}
+
+/// 1pt vertical divider that tracks the current effective appearance so it
+/// remains visible in both light and dark mode. Setting `cgColor` once bakes
+/// in the resolved color, so we re-resolve `NSColor.separatorColor` whenever
+/// the appearance changes.
+private final class DividerView: NSView {
+    override var wantsUpdateLayer: Bool { true }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+    }
+
+    override func updateLayer() {
+        super.updateLayer()
+        // labelColor is dark in light mode and light in dark mode, so a low
+        // alpha gives a divider that's clearly visible against the popover
+        // background in both appearances.
+        layer?.backgroundColor = NSColor.labelColor.withAlphaComponent(0.22).cgColor
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        needsDisplay = true
     }
 }

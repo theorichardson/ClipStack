@@ -17,23 +17,11 @@ enum WindowSnapHelper {
     }
 
     static func cocoaFrame(for quartzFrame: CGRect) -> CGRect {
-        guard let primary = NSScreen.screens.first else { return quartzFrame }
-        let primaryHeight = primary.frame.height
-        return CGRect(
-            x: quartzFrame.origin.x,
-            y: primaryHeight - quartzFrame.origin.y - quartzFrame.height,
-            width: quartzFrame.width,
-            height: quartzFrame.height
-        )
+        ScreenCoordinates.quartzToCocoa(quartzFrame)
     }
 
     static func localFrame(forCocoaScreenFrame frame: CGRect, on screenFrame: CGRect) -> CGRect {
-        CGRect(
-            x: frame.origin.x - screenFrame.origin.x,
-            y: frame.origin.y - screenFrame.origin.y,
-            width: frame.width,
-            height: frame.height
-        )
+        ScreenCoordinates.localRect(forGlobalCocoa: frame, on: screenFrame)
     }
 
     static func topmostShareableWindow(
@@ -41,9 +29,7 @@ enum WindowSnapHelper {
         in availableWindows: [SCWindow],
         excluding excludedIDs: Set<CGWindowID>
     ) -> SCWindow? {
-        guard let primary = NSScreen.screens.first else { return nil }
-        let primaryHeight = primary.frame.height
-        let quartzPoint = CGPoint(x: cocoaPoint.x, y: primaryHeight - cocoaPoint.y)
+        let quartzPoint = ScreenCoordinates.cocoaToQuartz(cocoaPoint)
 
         let byID = Dictionary(uniqueKeysWithValues: availableWindows.map { (CGWindowID($0.windowID), $0) })
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]

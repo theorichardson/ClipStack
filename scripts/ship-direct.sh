@@ -89,12 +89,113 @@ echo "==> Building DMG: $DMG_NAME"
 mkdir -p "$DMG_DIR"
 cp -R "$APP_PATH" "$DMG_DIR/ClipStack.app"
 ln -s /Applications "$DMG_DIR/Applications"
+
+# Generate the install-window background (arrow between app and Applications).
+mkdir -p "$DMG_DIR/.background"
+BG_PATH="$DMG_DIR/.background/background.png"
+swift - "$BG_PATH" <<'SWIFT'
+import AppKit
+
+let outPath = CommandLine.arguments[1]
+let width = 660
+let height = 400
+
+guard let rep = NSBitmapImageRep(
+    bitmapDataPlanes: nil,
+    pixelsWide: width,
+    pixelsHigh: height,
+    bitsPerSample: 8,
+    samplesPerPixel: 4,
+    hasAlpha: true,
+    isPlanar: false,
+    colorSpaceName: .deviceRGB,
+    bytesPerRow: 0,
+    bitsPerPixel: 0
+) else { fatalError("rep create failed") }
+rep.size = NSSize(width: width, height: height)
+
+NSGraphicsContext.saveGraphicsState()
+NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+
+NSColor(calibratedWhite: 0.97, alpha: 1).setFill()
+NSRect(x: 0, y: 0, width: CGFloat(width), height: CGFloat(height)).fill()
+
+let arrowColor = NSColor(calibratedWhite: 0.70, alpha: 1)
+arrowColor.setStroke()
+arrowColor.setFill()
+
+let midY: CGFloat = CGFloat(height) / 2
+let shaft = NSBezierPath()
+shaft.move(to: NSPoint(x: 260, y: midY))
+shaft.line(to: NSPoint(x: 395, y: midY))
+shaft.lineWidth = 6
+shaft.lineCapStyle = .round
+shaft.stroke()
+
+let head = NSBezierPath()
+head.move(to: NSPoint(x: 415, y: midY))
+head.line(to: NSPoint(x: 388, y: midY + 18))
+head.line(to: NSPoint(x: 388, y: midY - 18))
+head.close()
+head.fill()
+
+NSGraphicsContext.restoreGraphicsState()
+
+guard let png = rep.representation(using: .png, properties: [:]) else {
+    fatalError("png encode failed")
+}
+try png.write(to: URL(fileURLWithPath: outPath))
+SWIFT
+
+# Build a writable DMG so we can set Finder view options, then convert to UDZO.
+RW_DMG="$BUILD_DIR/ClipStack-rw.dmg"
+VOL_NAME="ClipStack $VERSION"
+rm -f "$RW_DMG"
 hdiutil create \
-  -volname "ClipStack $VERSION" \
+  -volname "$VOL_NAME" \
   -srcfolder "$DMG_DIR" \
+  -fs HFS+ \
+  -format UDRW \
   -ov \
-  -format UDZO \
-  "$DMG_PATH"
+  "$RW_DMG"
+
+echo "==> Applying Finder layout"
+MOUNT_OUT="$(hdiutil attach "$RW_DMG" -readwrite -noverify -noautoopen)"
+DEVICE="$(echo "$MOUNT_OUT" | awk 'NR==1 {print $1}')"
+MOUNT_POINT="/Volumes/$VOL_NAME"
+
+# Give Finder a moment to register the volume before scripting it.
+sleep 2
+
+osascript <<APPLESCRIPT
+tell application "Finder"
+    tell disk "$VOL_NAME"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set the bounds of container window to {200, 120, 860, 520}
+        set viewOptions to the icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 128
+        set text size of viewOptions to 13
+        set background picture of viewOptions to file ".background:background.png"
+        set position of item "ClipStack.app" of container window to {170, 200}
+        set position of item "Applications" of container window to {490, 200}
+        update without registering applications
+        delay 1
+        close
+    end tell
+end tell
+APPLESCRIPT
+
+sync
+hdiutil detach "$DEVICE" -quiet || hdiutil detach "$DEVICE" -force
+
+echo "==> Converting to compressed DMG"
+rm -f "$DMG_PATH"
+hdiutil convert "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG_PATH"
+rm -f "$RW_DMG"
 
 echo "==> Signing DMG with Developer ID"
 codesign --sign "Developer ID Application" --timestamp "$DMG_PATH"
@@ -152,7 +253,7 @@ if [[ -n "${SPARKLE_SIG_LINE:-}" ]]; then
             <sparkle:version>$BUILD_NUMBER</sparkle:version>
             <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="$RELEASE_URL" length="$DMG_SIZE" type="application/octet-stream" $SPARKLE_SIG_LINE />
+            <enclosure url="$RELEASE_URL" type="application/octet-stream" $SPARKLE_SIG_LINE />
         </item>
 EOF
 )
