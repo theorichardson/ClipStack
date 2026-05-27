@@ -8,10 +8,11 @@ struct ClipboardKeyboardView: View {
 
     @State private var searchText = ""
     @State private var sourceFilterKey: String?
-    @State private var selectedIDs: Set<UUID> = []
-    @State private var activeID: UUID?
-    @State private var anchorID: UUID?
-    @State private var scrollTrigger: UUID?
+    @ObservedObject private var downloadsIndexer = ClipStackDownloadsIndexer.shared
+    @State private var selectedRowKeys: Set<String> = []
+    @State private var activeRowKey: String?
+    @State private var anchorRowKey: String?
+    @State private var scrollTrigger: String?
     @State private var renamingEntryID: UUID?
     @State private var renameText = ""
     @State private var lastKeyboardSelectionTime: Date?
@@ -37,6 +38,10 @@ struct ClipboardKeyboardView: View {
     private let menuLimit = 30
     private static let selectionRestoreInterval: TimeInterval = 30
 
+    private var isDownloadsMode: Bool {
+        sourceFilterKey == ClipStackDownloadsStore.filterKey
+    }
+
     private var filteredEntries: [ClipboardEntry] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         var matches = entries
@@ -57,6 +62,24 @@ struct ClipboardKeyboardView: View {
         return Array(matches.prefix(menuLimit))
     }
 
+    private var filteredDownloads: [ClipStackDownloadItem] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let catalog = downloadsIndexer.items
+
+        guard !query.isEmpty else { return catalog }
+
+        return catalog.filter { item in
+            item.filename.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private var visibleRowKeys: [String] {
+        if isDownloadsMode {
+            return filteredDownloads.map(\.id)
+        }
+        return filteredEntries.map { rowKey(for: $0) }
+    }
+
     private var availableSourceFilters: [ClipSourceFilter] {
         var seen: Set<String> = []
         var result: [ClipSourceFilter] = []
@@ -75,33 +98,66 @@ struct ClipboardKeyboardView: View {
 
             sourceFilterBar
 
-            if filteredEntries.isEmpty {
+            if isDownloadsMode, downloadsIndexer.isLoading, downloadsIndexer.items.isEmpty {
+                VStack(spacing: 10) {
+                    ProgressView()
+                    Text("Loading downloads…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if visibleRowKeys.isEmpty {
                 ContentUnavailableView {
-                    Label("No clips", systemImage: "doc.on.clipboard")
+                    Label(emptyStateTitle, systemImage: emptyStateSymbol)
                 } description: {
-                    Text(searchText.isEmpty
-                        ? "Copy something on your Mac or iPhone."
-                        : "No matches for \"\(searchText)\".")
+                    Text(emptyStateMessage)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 0) {
-                            ForEach(filteredEntries) { entry in
-                                InsetSelectableRow(
-                                    isSelected: selectedIDs.contains(entry.id),
-                                    isActive: activeID == entry.id,
-                                    onSingleClick: { copyEntryFromRowClick(entry) },
-                                    onDoubleClick: { beginRename(entry) }
-                                ) {
-                                    ClipboardKeyboardRow(entry: entry)
+                            if isDownloadsMode {
+                                ForEach(filteredDownloads) { item in
+                                    InsetSelectableRow(
+                                        isSelected: selectedRowKeys.contains(item.id),
+                                        isActive: activeRowKey == item.id,
+                                        onSingleClick: { copyDownloadFromRowClick(item) }
+                                    ) {
+                                        DownloadsKeyboardRow(item: item)
+                                    }
+                                    .id(item.id)
                                 }
-                                .id(entry.id)
+                            } else {
+                                ForEach(filteredEntries) { entry in
+                                    InsetSelectableRow(
+                                        isSelected: selectedRowKeys.contains(rowKey(for: entry)),
+                                        isActive: activeRowKey == rowKey(for: entry),
+                                        onSingleClick: { copyEntryFromRowClick(entry) },
+                                        onDoubleClick: { beginRename(entry) }
+                                    ) {
+                                        ClipboardKeyboardRow(entry: entry)
+                                    }
+                                    .id(rowKey(for: entry))
+                                }
                             }
                         }
                         .padding(.horizontal, RowLayout.inset)
                         .padding(.vertical, RowLayout.inset)
+                    }
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        if isDownloadsMode, downloadsIndexer.isLoading, !downloadsIndexer.items.isEmpty {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Loading more…")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 6)
+                            .background(.bar)
+                        }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .onChange(of: scrollTrigger) { _, newValue in
@@ -109,9 +165,9 @@ struct ClipboardKeyboardView: View {
                         proxy.scrollTo(newValue, anchor: .center)
                     }
                     .onReceive(NotificationCenter.default.publisher(for: .clipStackPanelDidShow)) { _ in
-                        guard let activeID else { return }
+                        guard let activeRowKey else { return }
                         DispatchQueue.main.async {
-                            proxy.scrollTo(activeID, anchor: .center)
+                            proxy.scrollTo(activeRowKey, anchor: .center)
                         }
                     }
                 }
@@ -158,26 +214,27 @@ struct ClipboardKeyboardView: View {
         .onReceive(NotificationCenter.default.publisher(for: .clipStackPanelDidShow)) { _ in
             prepareForDisplay()
         }
-        .onChange(of: activeID) { _, newValue in
-            if let renamingEntryID, newValue != renamingEntryID {
+        .onChange(of: activeRowKey) { _, newValue in
+            if let renamingEntryID,
+               let entry = renamingEntry,
+               newValue != rowKey(for: entry) {
                 cancelRename()
             }
         }
-        .onChange(of: filteredEntries.map(\.id)) { _, ids in
-            let visible = Set(ids)
-            if let renamingEntryID, !visible.contains(renamingEntryID) {
-                cancelRename()
+        .onChange(of: sourceFilterKey) { _, newValue in
+            if newValue == ClipStackDownloadsStore.filterKey {
+                downloadsIndexer.refresh()
+            } else {
+                downloadsIndexer.cancelLoading()
             }
-            selectedIDs.formIntersection(visible)
-            if let activeID, !visible.contains(activeID) {
-                self.activeID = ids.first
-                anchorID = ids.first
-                if let first = ids.first { selectedIDs = [first] }
-            } else if activeID == nil {
-                activeID = ids.first
-                anchorID = ids.first
-                if let first = ids.first { selectedIDs = [first] }
-            }
+            syncSelectionToVisibleRows()
+        }
+        .onChange(of: downloadsIndexer.items.map(\.id)) { _, _ in
+            guard isDownloadsMode else { return }
+            syncSelectionToVisibleRows()
+        }
+        .onChange(of: visibleRowKeys) { _, _ in
+            syncSelectionToVisibleRows()
         }
         .background {
             Button("", action: copySelectedEntries)
@@ -243,72 +300,130 @@ struct ClipboardKeyboardView: View {
         .padding(.bottom, RowLayout.inset)
     }
 
+    private var emptyStateTitle: String {
+        isDownloadsMode ? "No downloads" : "No clips"
+    }
+
+    private var emptyStateSymbol: String {
+        isDownloadsMode ? "arrow.down.circle" : "doc.on.clipboard"
+    }
+
+    private var emptyStateMessage: String {
+        if !searchText.isEmpty {
+            return "No matches for \"\(searchText)\"."
+        }
+        if isDownloadsMode {
+            return "Files in your Downloads folder appear here. Search by name."
+        }
+        return "Copy something on your Mac or iPhone."
+    }
+
     @ViewBuilder
     private var sourceFilterBar: some View {
         let filters = availableSourceFilters
-        if filters.count > 1 {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        SourcePill(
-                            title: "All",
-                            symbolName: "tray.full",
-                            bundleID: nil,
-                            isSelected: sourceFilterKey == nil
-                        ) {
-                            sourceFilterKey = nil
-                        }
-                        .id(filterScrollID(for: nil))
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    SourcePill(
+                        title: "Clipboard",
+                        bundleID: nil,
+                        showsIcon: false,
+                        isSelected: sourceFilterKey == nil
+                    ) {
+                        sourceFilterKey = nil
+                    }
+                    .id(filterScrollID(for: nil))
 
-                        ForEach(filters) { filter in
-                            SourcePill(
-                                title: filter.displayName,
-                                symbolName: filter.fallbackSymbolName,
-                                bundleID: filter.bundleID,
-                                isSelected: sourceFilterKey == filter.key
-                            ) {
-                                sourceFilterKey = (sourceFilterKey == filter.key) ? nil : filter.key
-                            }
-                            .id(filterScrollID(for: filter.key))
+                    SourcePill(
+                        title: "Downloads",
+                        bundleID: nil,
+                        showsIcon: false,
+                        isSelected: sourceFilterKey == ClipStackDownloadsStore.filterKey
+                    ) {
+                        sourceFilterKey = ClipStackDownloadsStore.filterKey
+                    }
+                    .id(filterScrollID(for: ClipStackDownloadsStore.filterKey))
+
+                    ForEach(filters) { filter in
+                        SourcePill(
+                            title: filter.displayName,
+                            symbolName: filter.fallbackSymbolName,
+                            bundleID: filter.bundleID,
+                            isSelected: sourceFilterKey == filter.key
+                        ) {
+                            sourceFilterKey = (sourceFilterKey == filter.key) ? nil : filter.key
                         }
+                        .id(filterScrollID(for: filter.key))
                     }
-                    .padding(.horizontal, RowLayout.rowContentLeadingInset - 1)
-                    .padding(.vertical, 6)
                 }
-                .scrollClipDisabled()
-                .onChange(of: sourceFilterKey) { _, newValue in
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        proxy.scrollTo(filterScrollID(for: newValue), anchor: .center)
-                    }
+                .padding(.horizontal, RowLayout.rowContentLeadingInset - 1)
+                .padding(.vertical, 6)
+            }
+            .scrollClipDisabled()
+            .onChange(of: sourceFilterKey) { _, newValue in
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) {
+                    proxy.scrollTo(filterScrollID(for: newValue), anchor: .center)
                 }
             }
+        }
+    }
+
+    private func rowKey(for entry: ClipboardEntry) -> String {
+        "clip:\(entry.id.uuidString)"
+    }
+
+    private func syncSelectionToVisibleRows() {
+        let ids = visibleRowKeys
+        let visible = Set(ids)
+
+        if let renamingEntryID,
+           let entry = entries.first(where: { $0.id == renamingEntryID }),
+           !visible.contains(rowKey(for: entry)) {
+            cancelRename()
+        }
+
+        selectedRowKeys.formIntersection(visible)
+        if let activeRowKey, !visible.contains(activeRowKey) {
+            self.activeRowKey = ids.first
+            anchorRowKey = ids.first
+            if let first = ids.first { selectedRowKeys = [first] }
+        } else if activeRowKey == nil {
+            activeRowKey = ids.first
+            anchorRowKey = ids.first
+            if let first = ids.first { selectedRowKeys = [first] }
         }
     }
 
     private func prepareForDisplay() {
         cancelRename()
         searchText = ""
-        sourceFilterKey = nil
-        let visibleIDs = filteredEntries.map(\.id)
+        if sourceFilterKey == ClipStackDownloadsStore.filterKey {
+            downloadsIndexer.refresh()
+        }
+        if sourceFilterKey != ClipStackDownloadsStore.filterKey {
+            sourceFilterKey = nil
+        }
+
+        let visibleIDs = visibleRowKeys
         let visibleSet = Set(visibleIDs)
         let shouldRestoreSelection = lastKeyboardSelectionTime.map {
             Date().timeIntervalSince($0) < Self.selectionRestoreInterval
         } ?? false
 
-        if shouldRestoreSelection, let activeID, visibleSet.contains(activeID) {
-            selectedIDs.formIntersection(visibleSet)
-            if selectedIDs.isEmpty { selectedIDs = [activeID] }
-            if anchorID == nil || !(anchorID.map(visibleSet.contains) ?? false) {
-                anchorID = activeID
+        if shouldRestoreSelection, let activeRowKey, visibleSet.contains(activeRowKey) {
+            selectedRowKeys.formIntersection(visibleSet)
+            if selectedRowKeys.isEmpty { selectedRowKeys = [activeRowKey] }
+            if anchorRowKey == nil || !(anchorRowKey.map(visibleSet.contains) ?? false) {
+                anchorRowKey = activeRowKey
             }
         } else {
             lastKeyboardSelectionTime = nil
             let first = visibleIDs.first
-            activeID = first
-            anchorID = first
-            selectedIDs = first.map { [$0] } ?? []
+            activeRowKey = first
+            anchorRowKey = first
+            selectedRowKeys = first.map { [$0] } ?? []
         }
         DispatchQueue.main.async {
             focusTarget = .search
@@ -320,13 +435,18 @@ struct ClipboardKeyboardView: View {
         onDismiss()
     }
 
+    private func copyDownloadFromRowClick(_ item: ClipStackDownloadItem) {
+        PasteboardMonitor.shared.copyFiles(at: [item.url])
+        onDismiss()
+    }
+
     private func beginRename(_ entry: ClipboardEntry) {
         if let renamingEntryID, renamingEntryID != entry.id {
             cancelRename()
         }
         renamingEntryID = entry.id
         renameText = entry.customTitle ?? ""
-        replaceSelection(with: entry.id)
+        replaceSelection(with: rowKey(for: entry))
         isRenameFocused = true
     }
 
@@ -350,9 +470,16 @@ struct ClipboardKeyboardView: View {
     }
 
     private func copySelectedEntries() {
-        let ordered = filteredEntries.filter { selectedIDs.contains($0.id) }
+        if isDownloadsMode {
+            copySelectedDownloads()
+            return
+        }
+
+        let ordered = filteredEntries.filter { selectedRowKeys.contains(rowKey(for: $0)) }
         let entriesToCopy: [ClipboardEntry]
-        if ordered.isEmpty, let activeID, let entry = filteredEntries.first(where: { $0.id == activeID }) {
+        if ordered.isEmpty,
+           let activeRowKey,
+           let entry = filteredEntries.first(where: { rowKey(for: $0) == activeRowKey }) {
             entriesToCopy = [entry]
         } else {
             entriesToCopy = ordered
@@ -362,14 +489,29 @@ struct ClipboardKeyboardView: View {
         onDismiss()
     }
 
-    private func replaceSelection(with id: UUID) {
-        selectedIDs = [id]
-        activeID = id
-        anchorID = id
+    private func copySelectedDownloads() {
+        let ordered = filteredDownloads.filter { selectedRowKeys.contains($0.id) }
+        let urls: [URL]
+        if ordered.isEmpty,
+           let activeRowKey,
+           let item = filteredDownloads.first(where: { $0.id == activeRowKey }) {
+            urls = [item.url]
+        } else {
+            urls = ordered.map(\.url)
+        }
+        guard !urls.isEmpty else { return }
+        PasteboardMonitor.shared.copyFiles(at: urls)
+        onDismiss()
+    }
+
+    private func replaceSelection(with key: String) {
+        selectedRowKeys = [key]
+        activeRowKey = key
+        anchorRowKey = key
     }
 
     private var filterKeys: [String?] {
-        [nil] + availableSourceFilters.map(\.key)
+        [nil, ClipStackDownloadsStore.filterKey] + availableSourceFilters.map(\.key)
     }
 
     private func filterScrollID(for key: String?) -> String {
@@ -387,11 +529,11 @@ struct ClipboardKeyboardView: View {
     }
 
     private func moveSelection(by offset: Int, modifiers: EventModifiers) {
-        let ids = filteredEntries.map(\.id)
+        let ids = visibleRowKeys
         guard !ids.isEmpty else { return }
 
         let currentIndex: Int
-        if let activeID, let index = ids.firstIndex(of: activeID) {
+        if let activeRowKey, let index = ids.firstIndex(of: activeRowKey) {
             currentIndex = index
         } else {
             currentIndex = offset > 0 ? -1 : ids.count
@@ -401,23 +543,71 @@ struct ClipboardKeyboardView: View {
         let nextID = ids[nextIndex]
 
         if modifiers.contains(.shift) {
-            if anchorID == nil { anchorID = activeID ?? nextID }
-            activeID = nextID
-            if let anchor = anchorID, let anchorIndex = ids.firstIndex(of: anchor) {
+            if anchorRowKey == nil { anchorRowKey = activeRowKey ?? nextID }
+            activeRowKey = nextID
+            if let anchor = anchorRowKey, let anchorIndex = ids.firstIndex(of: anchor) {
                 let lower = min(anchorIndex, nextIndex)
                 let upper = max(anchorIndex, nextIndex)
-                selectedIDs = Set(ids[lower...upper])
+                selectedRowKeys = Set(ids[lower...upper])
             } else {
-                selectedIDs = [nextID]
+                selectedRowKeys = [nextID]
             }
         } else {
-            activeID = nextID
-            anchorID = nextID
-            selectedIDs = [nextID]
+            activeRowKey = nextID
+            anchorRowKey = nextID
+            selectedRowKeys = [nextID]
         }
 
         lastKeyboardSelectionTime = Date()
         scrollTrigger = nextID
+    }
+}
+
+private struct DownloadsKeyboardRow: View {
+    let item: ClipStackDownloadItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: RowLayout.iconTextSpacing) {
+            downloadThumbnail
+                .frame(width: RowLayout.iconSize, height: RowLayout.iconSize)
+                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.displayTitle)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
+                    .font(.body)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text("Downloads · \(item.modifiedAt.clipMenuTimestamp)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    @ViewBuilder
+    private var downloadThumbnail: some View {
+        if item.isImage,
+           let image = ClipEntryThumbnail.image(
+               imagePath: item.url.path,
+               textContent: nil,
+               contentType: ClipboardContentType.image.rawValue
+           ) {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fill)
+        } else {
+            Image(nsImage: NSWorkspace.shared.icon(forFile: item.url.path))
+                .resizable()
+                .interpolation(.high)
+                .aspectRatio(contentMode: .fit)
+                .padding(4)
+        }
     }
 }
 
@@ -536,8 +726,9 @@ struct ClipSourceFilter: Identifiable, Hashable {
 
 private struct SourcePill: View {
     let title: String
-    let symbolName: String
+    var symbolName: String = "app"
     let bundleID: String?
+    var showsIcon: Bool = true
     let isSelected: Bool
     let action: () -> Void
 
@@ -545,9 +736,11 @@ private struct SourcePill: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 5) {
-                iconView
-                    .frame(width: 16, height: 16)
+            HStack(spacing: showsIcon ? 5 : 0) {
+                if showsIcon {
+                    iconView
+                        .frame(width: 16, height: 16)
+                }
                 Text(title)
                     .font(.system(size: 12, weight: .medium))
                     .lineLimit(1)

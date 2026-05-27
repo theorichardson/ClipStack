@@ -74,6 +74,37 @@ final class PasteboardMonitor: ObservableObject {
         }
     }
 
+    func copyImages(at urls: [URL]) {
+        copyFiles(at: urls)
+    }
+
+    func copyFiles(at urls: [URL]) {
+        guard !urls.isEmpty else { return }
+
+        isInternalCopy = true
+        defer {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.isInternalCopy = false
+                self?.lastChangeCount = NSPasteboard.general.changeCount
+            }
+        }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        let imageExtensions: Set<String> = [
+            "png", "jpg", "jpeg", "tif", "tiff", "heic", "gif", "bmp", "webp",
+        ]
+        let images = urls.compactMap { url -> NSImage? in
+            guard imageExtensions.contains(url.pathExtension.lowercased()) else { return nil }
+            return NSImage(contentsOf: url)
+        }
+        if !images.isEmpty {
+            pasteboard.writeObjects(images)
+        }
+        pasteboard.writeObjects(urls.map { $0 as NSURL })
+    }
+
     @objc private func applicationDidBecomeActive(_ notification: Notification) {
         checkPasteboard()
     }

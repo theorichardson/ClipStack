@@ -24,6 +24,7 @@
 		37D6F3FC76FF24596F96AE08 /* PanelController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDDB9D2C18D138F6E4748D1A /* PanelController.swift */; };
 		38A22B38FFC82423FE2EC859 /* AppModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E4436B40C55A08E5C97F5A /* AppModelContainer.swift */; };
 		3917EB1DFD9B6583E7AF255F /* WallpaperFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5298CE0F84B1447AEF03AC16 /* WallpaperFrame.swift */; };
+		3BC86A065DF781020DF54135 /* ClipStackDownloadsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38E0C970EE721DF0CCD8D30 /* ClipStackDownloadsStore.swift */; };
 		4279D05EB5849ADBB561BC77 /* WallpaperFrameLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A76ED578606AABEE6B8E79D1 /* WallpaperFrameLibrary.swift */; };
 		48DF5A94E202473454236055 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A3A6CB12A150B55168B312 /* HotKeyManager.swift */; };
 		4ACE22E4A43D6D22A2F54FEA /* sequoia-sunrise.png in Resources */ = {isa = PBXBuildFile; fileRef = 57AF0CA47B5466F4BECE8D17 /* sequoia-sunrise.png */; };
@@ -105,6 +106,7 @@
 		9F29F0D57074003989A4ED38 /* ManagePresetsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManagePresetsWindowController.swift; sourceTree = "<group>"; };
 		A014F6A15549D95FB46D5302 /* RowClickHandling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RowClickHandling.swift; sourceTree = "<group>"; };
 		A2B369E3801F43BA87328743 /* ventura.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = ventura.png; sourceTree = "<group>"; };
+		A38E0C970EE721DF0CCD8D30 /* ClipStackDownloadsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipStackDownloadsStore.swift; sourceTree = "<group>"; };
 		A76ED578606AABEE6B8E79D1 /* WallpaperFrameLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperFrameLibrary.swift; sourceTree = "<group>"; };
 		A7F7677ADC2BA0B72BDCEBF5 /* ScreenCaptureKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenCaptureKit.framework; path = System/Library/Frameworks/ScreenCaptureKit.framework; sourceTree = SDKROOT; };
 		AA9FAAC68248813A06ABCC55 /* WindowPickerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPickerController.swift; sourceTree = "<group>"; };
@@ -204,6 +206,7 @@
 				83BD87349207258D418C17A3 /* CapturePresetStore.swift */,
 				F15A4ECCAA9A7372DB15A7E8 /* ClipboardStore.swift */,
 				2065D000C3E4B9F1F899DD71 /* ClipEntryThumbnail.swift */,
+				A38E0C970EE721DF0CCD8D30 /* ClipStackDownloadsStore.swift */,
 				1E1984BF89FE4C74F4F1A0D4 /* ImageFramer.swift */,
 				F403C9196360A81507D28C9E /* LastScreenshotRegionStore.swift */,
 				44F3CA1AD2F1332D79B48B79 /* PasteboardMonitor.swift */,
@@ -375,6 +378,7 @@
 				1D760B7B9A97B8264B50317A /* ClipEntryRowLabels.swift in Sources */,
 				F52A07CBAD035B8F51051478 /* ClipEntryThumbnail.swift in Sources */,
 				63A861CE44CD0EAB8DF39896 /* ClipRenameBar.swift in Sources */,
+				3BC86A065DF781020DF54135 /* ClipStackDownloadsStore.swift in Sources */,
 				C7BC139F7D407DB2F420D39B /* ClipStackPanelView.swift in Sources */,
 				00ECC2C717C840949927EF92 /* ClipboardEntry.swift in Sources */,
 				F51F6CCC9DE42E96DEBC4373 /* ClipboardKeyboardView.swift in Sources */,
