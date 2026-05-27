@@ -535,6 +535,8 @@ img.title-app-icon {
 
 .clip-icon.image {
     padding: 0;
+    background: #fff;
+    border-color: rgba(0, 0, 0, 0.08);
 }
 
 .clip-icon .clip-thumb {
@@ -542,6 +544,7 @@ img.title-app-icon {
     height: 100%;
     display: block;
     object-fit: cover;
+    object-position: center;
     border-radius: inherit;
 }
 
