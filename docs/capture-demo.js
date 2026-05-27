@@ -10,6 +10,8 @@
     if (!overlay || !selection || !badge || !dimLabel || !snapHint) return;
 
     const MIN_SIZE = 48;
+    const INTRO_DURATION_MS = 720;
+    const INTRO_SHRINK = 0.58;
     const SNAP_THRESHOLD = 40;
     const SNAP_FRAME_PADDING = 56;
     const HANDLES = ['nw', 'ne', 'sw', 'se'];
@@ -400,4 +402,66 @@
         if (shiftHeld) setShiftHeld(false);
         if (interaction && lastOverlayPoint) applyInteraction(lastOverlayPoint, false);
     });
+
+    function easeOutCubic(t) {
+        return 1 - (1 - t) ** 3;
+    }
+
+    function finishIntroPending() {
+        selection.classList.remove('is-intro-pending');
+        selection.style.opacity = '';
+    }
+
+    function runIntroAnimation() {
+        const finalRect = readRect();
+
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            finishIntroPending();
+            dimScale = { x: 840 / finalRect.width, y: 620 / finalRect.height };
+            updateBadge(false, false);
+            return;
+        }
+
+        const startRect = {
+            x: finalRect.x,
+            y: finalRect.y,
+            width: Math.max(MIN_SIZE, finalRect.width * INTRO_SHRINK),
+            height: Math.max(MIN_SIZE, finalRect.height * INTRO_SHRINK),
+        };
+
+        dimScale = { x: 840 / finalRect.width, y: 620 / finalRect.height };
+
+        finishIntroPending();
+        selection.classList.add('is-intro-animating');
+        applyRect(startRect);
+        updateBadge(false, false);
+
+        const start = performance.now();
+
+        function frame(now) {
+            const t = Math.min(1, (now - start) / INTRO_DURATION_MS);
+            const eased = easeOutCubic(t);
+
+            applyRect({
+                x: finalRect.x,
+                y: finalRect.y,
+                width: startRect.width + (finalRect.width - startRect.width) * eased,
+                height: startRect.height + (finalRect.height - startRect.height) * eased,
+            });
+            updateBadge(false, false);
+
+            if (t < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                applyRect(finalRect);
+                selection.classList.remove('is-intro-animating');
+                anchorPixels();
+                updateBadge(false, false);
+            }
+        }
+
+        requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(() => requestAnimationFrame(runIntroAnimation));
 })();

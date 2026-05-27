@@ -28,6 +28,7 @@ main {
 .hero {
     text-align: center;
     padding-bottom: 40px;
+    container-type: inline-size;
 }
 
 .app-icon {
@@ -46,11 +47,12 @@ h1 {
 }
 
 .tagline {
-    font-size: 18px;
-    line-height: 1.45;
+    font-size: min(18px, calc(100cqi / 44));
+    line-height: 1.2;
     color: var(--muted);
-    max-width: 460px;
+    max-width: none;
     margin: 0 auto 22px;
+    white-space: nowrap;
 }
 
 .download {
