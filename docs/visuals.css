@@ -1182,6 +1182,36 @@ img.title-app-icon {
     flex-shrink: 0;
 }
 
+.scene-width .popover-cell {
+    transition: background 0.12s ease;
+    cursor: default;
+}
+
+.scene-width .popover-cell:not(.hover):hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.scene-width .popover-cell.hover:hover {
+    background: rgba(0, 0, 0, 0.09);
+}
+
+.scene-width .width-menu-item {
+    transition: background 0.12s ease;
+    cursor: default;
+}
+
+.scene-width .width-menu-item:not(.selected):not(.muted):hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.scene-width .width-menu-item.selected:hover {
+    background: #006ee6;
+}
+
+.scene-width .width-menu-item.muted:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
 @media (max-width: 560px) {
     .mac-menubar-left .mac-menu-item:nth-child(n+3) {
         display: none;
