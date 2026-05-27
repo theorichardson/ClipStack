@@ -1,0 +1,1062 @@
+/* Product visuals — scaled macOS scenes derived from ClipStack UI code */
+
+:root {
+    --mac-menubar: #f5f5f7;
+    --mac-menubar-border: rgba(0, 0, 0, 0.08);
+    --mac-window-bg: #ffffff;
+    --mac-titlebar: #ececec;
+    --mac-traffic-red: #ff5f57;
+    --mac-traffic-yellow: #febc2e;
+    --mac-traffic-green: #28c840;
+    --mac-label: #1d1d1f;
+    --mac-secondary: #86868b;
+    --mac-tertiary: #aeaeb2;
+    --mac-separator: rgba(60, 60, 67, 0.18);
+    --mac-panel-bg: #ededed;
+    --mac-control-bg: #ffffff;
+    --mac-accent: #007aff;
+    --mac-accent-soft: rgba(0, 122, 255, 0.22);
+    --mac-accent-hover: rgba(0, 122, 255, 0.08);
+    --mac-popover-bg: rgba(255, 255, 255, 0.92);
+    --mac-popover-shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+    --mac-hud-bg: rgba(246, 246, 246, 0.82);
+    --mac-dim: rgba(0, 0, 0, 0.35);
+    --mac-blue: #007aff;
+    --mac-orange: #ff9500;
+    --mac-green: #34c759;
+    --scene-radius: 12px;
+    --scene-shadow: 0 18px 48px rgba(0, 0, 0, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+}
+
+.product-visual {
+    margin: 0 0 12px;
+    border-radius: var(--scene-radius);
+    overflow: hidden;
+    box-shadow: var(--scene-shadow);
+    background: #d8d8dc;
+    position: relative;
+    user-select: none;
+}
+
+.mac-scene {
+    position: absolute;
+    inset: 0;
+    font-size: 10px;
+    line-height: 1.3;
+    color: var(--mac-label);
+}
+
+/* Menu bar — matches NSStatusBar + Sonoma styling */
+.mac-menubar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 11.8%;
+    min-height: 28px;
+    background: var(--mac-menubar);
+    border-bottom: 0.5px solid var(--mac-menubar-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+    z-index: 20;
+}
+
+.mac-menubar-left,
+.mac-menubar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.mac-apple {
+    width: 12px;
+    height: 14px;
+    opacity: 0.85;
+}
+
+.mac-menu-item {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--mac-label);
+    opacity: 0.92;
+}
+
+.mac-menubar-right {
+    gap: 10px;
+    font-size: 10px;
+    color: var(--mac-secondary);
+}
+
+.clipstack-menubar-icon {
+    width: 15px;
+    height: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.88;
+}
+
+.clipstack-menubar-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Desktop wallpaper */
+.mac-desktop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        linear-gradient(165deg, #8ab4d4 0%, #5a8fb8 38%, #3d6f96 100%);
+}
+
+.mac-desktop.warm {
+    background:
+        linear-gradient(155deg, #f4c896 0%, #e8a86a 45%, #c9784a 100%);
+}
+
+.mac-desktop.neutral {
+    background:
+        linear-gradient(180deg, #e8e8ed 0%, #d1d1d6 100%);
+}
+
+/* App windows */
+.mac-window {
+    position: absolute;
+    background: var(--mac-window-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+}
+
+.mac-window-titlebar {
+    height: 26px;
+    background: var(--mac-titlebar);
+    border-bottom: 0.5px solid var(--mac-separator);
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 7px;
+}
+
+.mac-traffic {
+    display: flex;
+    gap: 6px;
+}
+
+.mac-traffic span {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.mac-traffic .red { background: var(--mac-traffic-red); }
+.mac-traffic .yellow { background: var(--mac-traffic-yellow); }
+.mac-traffic .green { background: var(--mac-traffic-green); }
+
+.mac-window-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--mac-secondary);
+    margin-right: 52px;
+}
+
+.title-app-icon {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+/* App-specific chrome */
+.app-cursor .mac-window-body {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    height: calc(100% - 26px);
+    background: #1e1e1e;
+}
+
+.app-cursor .sidebar {
+    background: #252526;
+    border-right: 0.5px solid #333;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.app-cursor .sidebar-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background: #333;
+    opacity: 0.5;
+}
+
+.app-cursor .editor {
+    padding: 10px 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 9px;
+    line-height: 1.55;
+    color: #d4d4d4;
+}
+
+.app-cursor .editor .kw { color: #569cd6; }
+.app-cursor .editor .fn { color: #dcdcaa; }
+.app-cursor .editor .str { color: #ce9178; }
+.app-cursor .editor .cm { color: #6a9955; }
+
+.app-figma .mac-window-body {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    height: calc(100% - 26px);
+}
+
+.app-figma .toolbar {
+    background: #2c2c2c;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    gap: 8px;
+}
+
+.app-figma .tool {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #3a3a3a;
+}
+
+.app-figma .tool.active {
+    background: #0d99ff;
+}
+
+.app-figma .canvas {
+    background: #1e1e1e;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-figma .frame-card {
+    width: 58%;
+    height: 62%;
+    background: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.app-figma .inspector {
+    background: #2c2c2c;
+    border-left: 0.5px solid #444;
+    padding: 10px;
+}
+
+.app-figma .inspector-line {
+    height: 6px;
+    border-radius: 3px;
+    background: #444;
+    margin-bottom: 8px;
+}
+
+.app-figma .inspector-line.short { width: 60%; }
+.app-figma .inspector-line.accent { background: #0d99ff; width: 40%; }
+
+.app-notes .mac-window-body {
+    height: calc(100% - 26px);
+    background: #fffef8;
+    padding: 16px 20px;
+}
+
+.app-notes .note-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: -0.02em;
+}
+
+.app-notes .note-line {
+    height: 5px;
+    background: #e8e4d4;
+    border-radius: 2px;
+    margin-bottom: 7px;
+}
+
+.app-notes .note-line:nth-child(odd) { width: 92%; }
+.app-notes .note-line:nth-child(even) { width: 78%; }
+
+/* ClipStack status bar popover — StatusBarPopoverController */
+.clipstack-popover {
+    position: absolute;
+    z-index: 30;
+    background: var(--mac-popover-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 14px;
+    box-shadow: var(--mac-popover-shadow);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.popover-cell {
+    min-width: 52px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 0 6px;
+}
+
+.popover-cell.hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.popover-cell svg {
+    width: 18px;
+    height: 18px;
+    color: var(--mac-label);
+}
+
+.popover-cell span {
+    font-size: 8px;
+    font-weight: 500;
+    color: var(--mac-secondary);
+}
+
+.popover-divider {
+    width: 1px;
+    height: 26px;
+    background: rgba(60, 60, 67, 0.22);
+}
+
+/* Width submenu */
+.width-menu {
+    position: absolute;
+    z-index: 35;
+    background: var(--mac-popover-bg);
+    backdrop-filter: blur(24px);
+    border-radius: 8px;
+    box-shadow: var(--mac-popover-shadow);
+    padding: 4px 0;
+    min-width: 140px;
+}
+
+.width-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 10px;
+    margin: 1px 4px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--mac-label);
+}
+
+.width-menu-item.selected {
+    background: var(--mac-accent);
+    color: #fff;
+}
+
+.preset-dim {
+    font-size: 10px;
+    color: var(--mac-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.width-menu-item.selected .preset-dim {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.width-menu-item.muted {
+    color: var(--mac-secondary);
+    font-size: 10px;
+    justify-content: flex-start;
+    border-top: 0.5px solid var(--mac-separator);
+    margin-top: 4px;
+    padding-top: 8px;
+    border-radius: 0;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 14px;
+}
+
+/* Clipboard panel — ClipboardKeyboardView (280×400) */
+.clipstack-panel {
+    position: absolute;
+    z-index: 25;
+    background: var(--mac-window-bg);
+    border-radius: 12px;
+    box-shadow: 0 20px 56px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+}
+
+.panel-search {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 10px 11px 8px 8px;
+    color: var(--mac-secondary);
+    flex-shrink: 0;
+}
+
+.panel-search span {
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.panel-search svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.panel-pills {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.panel-pills::-webkit-scrollbar {
+    display: none;
+}
+
+.source-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--mac-label);
+    white-space: nowrap;
+    background: transparent;
+    flex: 0 0 auto;
+    width: max-content;
+}
+
+.source-pill.selected {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.app-icon-mini {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    object-fit: contain;
+    display: block;
+    background: transparent;
+}
+
+.pill-symbol {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    color: var(--mac-secondary);
+}
+
+img.app-icon-mini,
+img.title-app-icon {
+    overflow: hidden;
+}
+
+.panel-clips {
+    flex: 0 0 auto;
+    padding: 4px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.clip-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 4px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.clip-row.selected {
+    background: var(--mac-accent-soft);
+}
+
+.clip-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--mac-control-bg);
+    border: 0.5px solid var(--mac-separator);
+    flex-shrink: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--mac-secondary);
+    overflow: visible;
+}
+
+.clip-icon.url { color: var(--mac-accent); }
+
+.clip-type-icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.clip-icon.image {
+    padding: 0;
+}
+
+.clip-icon .clip-thumb {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    border-radius: inherit;
+}
+
+.clip-thumb-dummy {
+    background:
+        linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+    position: relative;
+}
+
+.clip-thumb-dummy::after {
+    content: "";
+    position: absolute;
+    inset: 22% 14% 18%;
+    border-radius: 2px;
+    background: #fff;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.clip-icon .clip-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    z-index: 1;
+    width: 16px;
+    height: 16px;
+    padding: 2px;
+    box-sizing: border-box;
+    background: #fff;
+    border: 0.5px solid rgba(60, 60, 67, 0.28);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.clip-icon .clip-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.clip-text {
+    flex: 1;
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.clip-preview {
+    font-size: 11.5px;
+    line-height: 1.3;
+    color: var(--mac-label);
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.clip-meta {
+    font-size: 10px;
+    color: var(--mac-secondary);
+    margin-top: 2px;
+}
+
+/* Skeleton rows — suggest scroll without real content */
+.clip-row-dummy {
+    opacity: 0.38;
+    pointer-events: none;
+}
+
+.clip-icon.dummy {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: transparent;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+}
+
+.dummy-line {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.08);
+    width: 78%;
+}
+
+.dummy-line.wide {
+    width: 88%;
+}
+
+.dummy-line.short {
+    width: 42%;
+    height: 5px;
+    margin-top: 5px;
+}
+
+.clip-row-dummy .clip-preview,
+.clip-row-dummy .clip-meta {
+    display: block;
+    -webkit-line-clamp: unset;
+}
+
+/* Region capture overlay — RegionSelectorController */
+.capture-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 15;
+    pointer-events: none;
+}
+
+.capture-dim {
+    position: absolute;
+    inset: 0;
+    background: var(--mac-dim);
+}
+
+.capture-hole {
+    position: absolute;
+    border: 1px solid var(--mac-blue);
+    box-shadow: 0 0 0 9999px var(--mac-dim);
+    border-radius: 1px;
+}
+
+.capture-handle {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    background: #fff;
+    border: 1px solid var(--mac-blue);
+    border-radius: 50%;
+}
+
+.capture-badge {
+    position: absolute;
+    z-index: 16;
+    background: var(--mac-hud-bg);
+    backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(60, 60, 67, 0.45);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.capture-badge .dim {
+    font-weight: 600;
+}
+
+.capture-badge .hint {
+    font-weight: 400;
+    color: var(--mac-secondary);
+    margin-left: 6px;
+}
+
+/* Capture toast — CaptureToastController */
+.capture-toast {
+    --toast-radius: 6px;
+    position: absolute;
+    z-index: 20;
+    bottom: 6%;
+    right: 5%;
+    width: 34%;
+    max-width: 140px;
+    aspect-ratio: 16 / 10;
+    border-radius: var(--toast-radius);
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+    border: 0.5px solid rgba(60, 60, 67, 0.35);
+    background: #fff;
+}
+
+.toast-thumb {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    isolation: isolate;
+}
+
+.toast-preview {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+}
+
+.toast-actions-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.toast-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+}
+
+.toast-pill {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.94);
+    color: #1a1a1a;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+    border: 0.5px solid rgba(0, 0, 0, 0.06);
+    white-space: nowrap;
+}
+
+/* Framed export — ImageFramer */
+.framed-export {
+    position: absolute;
+    z-index: 18;
+    width: 52%;
+    aspect-ratio: 16 / 10;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+.framed-export.tahoe-light {
+    background: #4a90e2 url("images/tahoe-light.png") center / cover no-repeat;
+}
+
+.framed-screenshot {
+    position: absolute;
+    top: 12%;
+    left: 10%;
+    right: 10%;
+    bottom: 12%;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+
+.framed-screenshot .mini-ui,
+.toast-preview .mini-ui {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #f5f5f7;
+}
+
+.framed-screenshot .mini-topbar,
+.toast-preview .mini-topbar {
+    height: 22px;
+    background: #ffffff;
+    border-bottom: 0.5px solid #e2e2e7;
+    display: flex;
+    align-items: center;
+    padding: 0 7px;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.mini-topbar-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+}
+.mini-topbar-dot.red    { background: var(--mac-traffic-red); }
+.mini-topbar-dot.yellow { background: var(--mac-traffic-yellow); }
+.mini-topbar-dot.green  { background: var(--mac-traffic-green); }
+
+.mini-topbar-title {
+    flex: 1;
+    height: 5px;
+    background: #e2e2e7;
+    border-radius: 3px;
+    max-width: 42%;
+    margin: 0 auto;
+    margin-right: 22px;
+}
+
+.framed-screenshot .mini-body,
+.toast-preview .mini-body {
+    flex: 1;
+    padding: 6px 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mini-chips {
+    display: flex;
+    gap: 4px;
+}
+
+.mini-chip {
+    height: 8px;
+    width: 24px;
+    border-radius: 99px;
+    background: #e2e2e7;
+}
+
+.mini-chip.selected {
+    background: var(--mac-accent);
+    width: 28px;
+}
+
+.mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.mini-list-row {
+    height: 6px;
+    border-radius: 3px;
+    background: #e2e2e7;
+}
+
+.mini-list-row.accent { background: var(--mac-accent); width: 55%; }
+.mini-list-row.short  { width: 72%; }
+
+/* Width preset indicator */
+.width-indicator {
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 12;
+    background: rgba(255, 255, 255, 0.92);
+    border: 0.5px solid var(--mac-separator);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--mac-secondary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.width-indicator strong {
+    color: var(--mac-label);
+}
+
+.scene-clipboard {
+    font-size: 12px;
+}
+
+.product-visual:has(.scene-clipboard) {
+    border-radius: 16px;
+}
+
+.scene-clipboard .clipstack-panel {
+    position: absolute;
+    top: 8%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translateX(-50%) scale(1.15);
+    transform-origin: top center;
+    width: 70%;
+    max-width: none;
+    min-width: 0;
+    height: auto;
+    max-height: none;
+    z-index: 25;
+    border-radius: 16px 16px 0 0;
+}
+
+.scene-clipboard .panel-search {
+    /* Match clip-row inset: panel-clips 8px + row 4px */
+    gap: 10px;
+    padding: 8px 12px 2px;
+}
+
+.scene-clipboard .panel-search span,
+.scene-clipboard .clip-preview {
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.scene-clipboard .panel-search svg {
+    width: 39px;
+    height: 39px;
+    padding: 11px;
+    box-sizing: border-box;
+}
+
+.scene-clipboard .panel-pills {
+    padding-top: 2px;
+}
+
+.scene-clipboard .panel-clips {
+    padding: 4px 8px 0;
+    gap: 2px;
+}
+
+.scene-clipboard .clip-row {
+    gap: 11px;
+    padding: 7px;
+    border-radius: 14px;
+}
+
+.scene-clipboard .clip-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+}
+
+.scene-clipboard .clip-icon.dummy {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+}
+
+.scene-clipboard .clip-type-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.scene-clipboard .clip-icon .clip-badge {
+    width: 17px;
+    height: 17px;
+}
+
+.scene-clipboard .clip-text {
+    padding-top: 3px;
+}
+
+.scene-clipboard .clip-meta {
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.scene-clipboard .dummy-line {
+    height: 7px;
+}
+
+.scene-clipboard .dummy-line.short {
+    height: 6px;
+    margin-top: 6px;
+}
+
+.scene-capture .mac-window.figma-win {
+    top: 4%;
+    left: 4%;
+    width: 92%;
+    height: 90%;
+}
+
+.scene-capture .capture-overlay {
+    top: 0;
+}
+
+.scene-capture .capture-hole {
+    top: 20%;
+    left: 16%;
+    width: 52%;
+    height: 54%;
+}
+
+.scene-capture .capture-badge {
+    top: 13%;
+    left: 16%;
+}
+
+.scene-capture .capture-handle.nw { top: calc(20% - 3px); left: calc(16% - 3px); }
+.scene-capture .capture-handle.ne { top: calc(20% - 3px); left: calc(68% - 3px); }
+.scene-capture .capture-handle.sw { top: calc(74% - 3px); left: calc(16% - 3px); }
+.scene-capture .capture-handle.se { top: calc(74% - 3px); left: calc(68% - 3px); }
+
+.scene-framed .framed-export {
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 68%;
+    aspect-ratio: 16 / 10;
+}
+
+.scene-framed .capture-toast {
+    bottom: 6%;
+    right: 5%;
+    width: 34%;
+    aspect-ratio: 16 / 10;
+}
+
+.scene-width .width-controls {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    padding: 10px;
+}
+
+.scene-width .width-popover-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    max-width: 100%;
+    transform: scale(1.35);
+    transform-origin: center center;
+}
+
+.scene-width .width-popover-group .clipstack-popover {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.scene-width .width-popover-group .width-menu {
+    position: relative;
+    top: auto;
+    right: auto;
+    min-width: 168px;
+    margin-right: 54px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+    .mac-menubar-left .mac-menu-item:nth-child(n+3) {
+        display: none;
+    }
+}

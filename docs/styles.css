@@ -19,37 +19,38 @@ html, body {
 }
 
 main {
-    max-width: 720px;
+    width: 100%;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 96px 24px 72px;
+    padding: 56px clamp(24px, 5vw, 64px) 72px;
 }
 
 .hero {
     text-align: center;
-    padding-bottom: 80px;
+    padding-bottom: 40px;
 }
 
 .app-icon {
-    width: 112px;
-    height: 112px;
+    width: 88px;
+    height: 88px;
     border-radius: 12px;
-    margin-bottom: 24px;
+    margin-bottom: 18px;
 }
 
 h1 {
-    font-size: 52px;
+    font-size: 44px;
     line-height: 1;
     letter-spacing: -0.035em;
-    margin: 0 0 14px;
+    margin: 0 0 10px;
     font-weight: 700;
 }
 
 .tagline {
-    font-size: 19px;
+    font-size: 18px;
     line-height: 1.45;
     color: var(--muted);
     max-width: 460px;
-    margin: 0 auto 28px;
+    margin: 0 auto 22px;
 }
 
 .download {
@@ -74,20 +75,67 @@ h1 {
 
 .features {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 40px 48px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: repeat(2, minmax(380px, 1fr));
+    grid-template-areas:
+        "clip  cap"
+        "frame width";
+    gap: 20px 24px;
     margin-bottom: 96px;
+    align-items: stretch;
+    width: 100%;
+}
+
+.features article:nth-child(1) { grid-area: clip; }
+.features article:nth-child(2) { grid-area: cap; }
+.features article:nth-child(3) { grid-area: frame; }
+.features article:nth-child(4) { grid-area: width; }
+
+.product-visual {
+    aspect-ratio: 16 / 10;
+    width: 100%;
+    max-height: min(360px, 40vh);
+    min-height: 280px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: var(--scene-radius);
+}
+
+@media (max-width: 720px) {
+    .features {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        grid-template-areas:
+            "clip"
+            "cap"
+            "frame"
+            "width";
+        gap: 32px;
+    }
+
+    .product-visual {
+        max-height: none;
+        min-height: 0;
+        aspect-ratio: 16 / 10;
+    }
 }
 
 @media (max-width: 560px) {
-    .features { grid-template-columns: 1fr; gap: 32px; }
     h1 { font-size: 40px; }
     main { padding-top: 64px; }
 }
 
+.features article {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-height: 0;
+}
+
 .features h2 {
-    font-size: 17px;
-    margin: 0 0 6px;
+    font-size: 16px;
+    margin: 0 0 4px;
     font-weight: 600;
     letter-spacing: -0.01em;
 }
@@ -95,8 +143,8 @@ h1 {
 .features p {
     margin: 0;
     color: var(--muted);
-    font-size: 15px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.45;
 }
 
 footer {
