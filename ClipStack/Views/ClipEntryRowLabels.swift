@@ -8,7 +8,7 @@ struct ClipEntryRowLabels: View {
             Text(entry.preview)
                 .lineLimit(entry.listPreviewLineLimit)
                 .truncationMode(.tail)
-                .font(.body)
+                .font(.body.weight(.medium))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             ClipEntryMetadataRow(entry: entry)

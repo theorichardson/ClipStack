@@ -20,7 +20,7 @@
     --mac-popover-bg: rgba(255, 255, 255, 0.92);
     --mac-popover-shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
     --mac-hud-bg: rgba(246, 246, 246, 0.82);
-    --mac-dim: rgba(0, 0, 0, 0.35);
+    --mac-dim: rgba(0, 0, 0, 0.52);
     --mac-blue: #007aff;
     --mac-orange: #ff9500;
     --mac-green: #34c759;
@@ -587,6 +587,7 @@ img.title-app-icon {
 
 .clip-preview {
     font-size: 11.5px;
+    font-weight: 500;
     line-height: 1.3;
     color: var(--mac-label);
     display: -webkit-box;
@@ -689,6 +690,11 @@ img.title-app-icon {
 .capture-badge .hint {
     font-weight: 400;
     color: var(--mac-secondary);
+    margin-left: 6px;
+}
+
+.capture-badge .capture-snap-hint {
+    font-weight: 600;
     margin-left: 6px;
 }
 
@@ -1032,32 +1038,69 @@ img.title-app-icon {
 }
 
 .scene-capture .mac-window.figma-win {
-    top: 4%;
-    left: 4%;
+    top: 8%;
+    left: 50%;
     width: 92%;
     height: 90%;
+    transform: translateX(-50%) scale(0.9);
+    transform-origin: top center;
 }
 
 .scene-capture .capture-overlay {
     top: 0;
 }
 
+.scene-capture .capture-selection {
+    position: absolute;
+    top: 22%;
+    left: 27%;
+    width: 45%;
+    height: 48%;
+    pointer-events: auto;
+    touch-action: none;
+    cursor: grab;
+}
+
+.scene-capture .capture-selection.is-dragging {
+    cursor: grabbing;
+}
+
+.scene-capture .capture-selection.is-resizing {
+    cursor: inherit;
+}
+
 .scene-capture .capture-hole {
-    top: 20%;
-    left: 16%;
-    width: 52%;
-    height: 54%;
+    inset: 0;
+    width: auto;
+    height: auto;
+    cursor: grab;
+}
+
+.scene-capture .capture-selection.is-dragging .capture-hole {
+    cursor: grabbing;
 }
 
 .scene-capture .capture-badge {
-    top: 13%;
-    left: 16%;
+    top: -4px;
+    left: 0;
+    transform: translateY(-100%);
+    cursor: grab;
 }
 
-.scene-capture .capture-handle.nw { top: calc(20% - 3px); left: calc(16% - 3px); }
-.scene-capture .capture-handle.ne { top: calc(20% - 3px); left: calc(68% - 3px); }
-.scene-capture .capture-handle.sw { top: calc(74% - 3px); left: calc(16% - 3px); }
-.scene-capture .capture-handle.se { top: calc(74% - 3px); left: calc(68% - 3px); }
+.scene-capture .capture-handle.nw { top: -3px; left: -3px; right: auto; bottom: auto; cursor: nwse-resize; }
+.scene-capture .capture-handle.ne { top: -3px; right: -3px; left: auto; bottom: auto; cursor: nesw-resize; }
+.scene-capture .capture-handle.sw { bottom: -3px; left: -3px; top: auto; right: auto; cursor: nesw-resize; }
+.scene-capture .capture-handle.se { bottom: -3px; right: -3px; top: auto; left: auto; cursor: nwse-resize; }
+
+.scene-capture .capture-selection.is-snapping .capture-hole {
+    border-width: 2px;
+    border-color: var(--mac-orange);
+}
+
+.scene-capture .capture-selection.is-snapping .capture-handle {
+    border-width: 2px;
+    border-color: var(--mac-orange);
+}
 
 .scene-framed .framed-export {
     top: 10%;
