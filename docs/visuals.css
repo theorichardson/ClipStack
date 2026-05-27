@@ -341,7 +341,7 @@
 .popover-cell span {
     font-size: 8px;
     font-weight: 500;
-    color: var(--mac-secondary);
+    color: var(--mac-label);
 }
 
 .popover-divider {
@@ -388,17 +388,10 @@
     color: rgba(255, 255, 255, 0.7);
 }
 
-.width-menu-item.muted {
-    color: var(--mac-secondary);
-    font-size: 10px;
-    justify-content: flex-start;
-    border-top: 0.5px solid var(--mac-separator);
-    margin-top: 4px;
-    padding-top: 8px;
-    border-radius: 0;
-    margin-left: 0;
-    margin-right: 0;
-    padding-left: 14px;
+.width-menu-divider {
+    height: 0.5px;
+    background: var(--mac-separator);
+    margin: 4px 8px;
 }
 
 /* Clipboard panel — ClipboardKeyboardView (280×400) */
@@ -1200,16 +1193,12 @@ img.title-app-icon {
     cursor: default;
 }
 
-.scene-width .width-menu-item:not(.selected):not(.muted):hover {
+.scene-width .width-menu-item:not(.selected):hover {
     background: rgba(0, 0, 0, 0.06);
 }
 
 .scene-width .width-menu-item.selected:hover {
     background: #006ee6;
-}
-
-.scene-width .width-menu-item.muted:hover {
-    background: rgba(0, 0, 0, 0.04);
 }
 
 @media (max-width: 560px) {
