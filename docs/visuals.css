@@ -29,13 +29,14 @@
 }
 
 .product-visual {
-    margin: 0 0 12px;
+    margin: 0;
     border-radius: var(--scene-radius);
     overflow: hidden;
     box-shadow: var(--scene-shadow);
     background: #d8d8dc;
     position: relative;
     user-select: none;
+    container-type: size;
 }
 
 .mac-scene {
@@ -313,7 +314,7 @@
 }
 
 .popover-cell {
-    min-width: 52px;
+    min-width: 58px;
     height: 46px;
     border-radius: 12px;
     display: flex;
@@ -328,10 +329,13 @@
     background: rgba(0, 0, 0, 0.06);
 }
 
-.popover-cell svg {
-    width: 18px;
-    height: 18px;
+.popover-cell svg,
+.popover-cell .clip-type-icon,
+.popover-cell .sf-symbol {
+    width: 22px;
+    height: 22px;
     color: var(--mac-label);
+    flex-shrink: 0;
 }
 
 .popover-cell span {
@@ -524,10 +528,16 @@ img.title-app-icon {
 
 .clip-icon.url { color: var(--mac-accent); }
 
-.clip-type-icon {
+.clip-type-icon,
+.sf-symbol {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
+    fill: currentColor;
+}
+
+.sf-symbol {
+    display: block;
 }
 
 .clip-icon.image {
@@ -704,7 +714,8 @@ img.title-app-icon {
     position: absolute;
     z-index: 20;
     bottom: 6%;
-    right: 5%;
+    /* Match bottom inset in px: right % is of width, bottom % is of height. */
+    right: 6cqh;
     width: 34%;
     max-width: 140px;
     aspect-ratio: 16 / 10;
@@ -736,6 +747,7 @@ img.title-app-icon {
     align-items: center;
     justify-content: center;
     background: rgba(0, 0, 0, 0.3);
+    pointer-events: none;
 }
 
 .toast-actions {
@@ -743,18 +755,34 @@ img.title-app-icon {
     flex-direction: column;
     gap: 5px;
     align-items: center;
+    pointer-events: none;
 }
 
 .toast-pill {
+    appearance: none;
+    margin: 0;
     padding: 4px 10px;
     border-radius: 999px;
+    font-family: inherit;
     font-size: 9px;
     font-weight: 500;
-    background: rgba(255, 255, 255, 0.94);
-    color: #1a1a1a;
+    line-height: 1.2;
+    background: rgba(255, 255, 255, 0.92);
+    color: rgba(26, 26, 26, 0.92);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-    border: 0.5px solid rgba(0, 0, 0, 0.06);
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
     white-space: nowrap;
+    pointer-events: auto;
+    cursor: default;
+    transition: background 0.12s ease;
+}
+
+.toast-pill:hover {
+    background: rgba(255, 255, 255, 1);
+}
+
+.toast-pill:active {
+    background: rgba(255, 255, 255, 0.7);
 }
 
 /* Framed export — ImageFramer */
@@ -1009,7 +1037,8 @@ img.title-app-icon {
     border-radius: 10px;
 }
 
-.scene-clipboard .clip-type-icon {
+.scene-clipboard .clip-type-icon,
+.scene-clipboard .sf-symbol {
     width: 16px;
     height: 16px;
 }
@@ -1103,16 +1132,18 @@ img.title-app-icon {
 }
 
 .scene-framed .framed-export {
-    top: 10%;
+    top: 8%;
     left: 50%;
-    transform: translateX(-50%);
-    width: 68%;
-    aspect-ratio: 16 / 10;
+    width: 92%;
+    height: 90%;
+    transform: translateX(-50%) scale(0.9);
+    transform-origin: top center;
+    aspect-ratio: auto;
 }
 
 .scene-framed .capture-toast {
     bottom: 6%;
-    right: 5%;
+    right: 6cqh;
     width: 34%;
     aspect-ratio: 16 / 10;
 }

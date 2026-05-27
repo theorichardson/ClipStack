@@ -12,6 +12,7 @@
 <link rel="preload" href="images/CUBE_25D.svg" as="image" type="image/svg+xml" />
 <link rel="preload" href="images/figma.svg" as="image" type="image/svg+xml" />
 <link rel="preload" href="images/claude-icon.svg" as="image" type="image/svg+xml" />
+<link rel="preload" href="sf-symbols.svg" as="image" type="image/svg+xml" />
 </head>
 <body>
 <main>
@@ -31,7 +32,7 @@
                     <div class="mac-desktop neutral"></div>
                     <div class="clipstack-panel">
                         <div class="panel-search">
-                            <svg class="clip-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-magnifyingglass"/></svg>
                             <span class="search-input"><span class="search-caret" aria-hidden="true"></span><span class="search-placeholder">Search…</span></span>
                         </div>
                         <div class="panel-pills">
@@ -45,7 +46,7 @@
                         <div class="panel-clips">
                             <div class="clip-row selected">
                                 <div class="clip-icon url">
-                                    <svg class="clip-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                    <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-link"/></svg>
                                     <span class="clip-badge" aria-hidden="true"><img src="images/figma.svg" alt="" /></span>
                                 </div>
                                 <div class="clip-text">
@@ -55,7 +56,7 @@
                             </div>
                             <div class="clip-row">
                                 <div class="clip-icon">
-                                    <svg class="clip-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                                    <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-text-alignleft"/></svg>
                                     <span class="clip-badge" aria-hidden="true"><img src="images/CUBE_25D.svg" alt="" /></span>
                                 </div>
                                 <div class="clip-text">
@@ -65,7 +66,7 @@
                             </div>
                             <div class="clip-row">
                                 <div class="clip-icon">
-                                    <svg class="clip-type-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                                    <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-text-alignleft"/></svg>
                                     <span class="clip-badge" aria-hidden="true"><img src="images/claude-icon.svg" alt="" /></span>
                                 </div>
                                 <div class="clip-text">
@@ -75,7 +76,7 @@
                             </div>
                             <div class="clip-row">
                                 <div class="clip-icon image">
-                                    <div class="clip-thumb clip-thumb-dummy" aria-hidden="true"></div>
+                                    <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-photo"/></svg>
                                     <span class="clip-badge" aria-hidden="true"><img src="images/figma.svg" alt="" /></span>
                                 </div>
                                 <div class="clip-text">
@@ -108,8 +109,10 @@
                     </div>
                 </div>
             </figure>
-            <h2>Clipboard history</h2>
-            <p>Open with ⌘⇧X. Filter by app, search, and paste from your Mac or iPhone.</p>
+            <div class="feature-copy">
+                <h2>Clipboard history</h2>
+                <p>Open with ⌘⇧X. Filter by app, search, and paste from your Mac or iPhone.</p>
+            </div>
         </article>
 
         <article>
@@ -148,8 +151,10 @@
                     </div>
                 </div>
             </figure>
-            <h2>Region &amp; window capture</h2>
-            <p>Screenshot or record any region or window from the menu bar. Save presets for repeat grabs.</p>
+            <div class="feature-copy">
+                <h2>Region &amp; window capture</h2>
+                <p>Screenshot or record any region or window from the menu bar. Save presets for repeat grabs.</p>
+            </div>
         </article>
 
         <article>
@@ -208,16 +213,18 @@
                             </div>
                             <div class="toast-actions-overlay">
                                 <div class="toast-actions">
-                                    <span class="toast-pill">Background</span>
-                                    <span class="toast-pill">Copy</span>
+                                    <button type="button" class="toast-pill">Background</button>
+                                    <button type="button" class="toast-pill">Copy</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </figure>
-            <h2>Framed exports</h2>
-            <p>Frame captures on macOS wallpapers before copying or dragging them out.</p>
+            <div class="feature-copy">
+                <h2>Framed exports</h2>
+                <p>Frame captures on macOS wallpapers before copying or dragging them out.</p>
+            </div>
         </article>
 
         <article>
@@ -228,21 +235,21 @@
                         <div class="width-popover-group">
                             <div class="clipstack-popover">
                                 <div class="popover-cell">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 2"><rect x="4" y="5" width="16" height="14" rx="1"/></svg>
+                                    <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-rectangle-dashed"/></svg>
                                     <span>Region</span>
                                 </div>
                                 <div class="popover-cell">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="13" rx="1.5"/><path d="M3 10h18"/></svg>
+                                    <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-macwindow"/></svg>
                                     <span>Window</span>
                                 </div>
                                 <div class="popover-divider"></div>
                                 <div class="popover-cell hover">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 16V8h8v8H8z"/><path d="M4 20h16M4 4h16"/></svg>
-                                    <span>Width</span>
+                                    <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-square-resize-down"/></svg>
+                                    <span>Apply width</span>
                                 </div>
                                 <div class="popover-divider"></div>
                                 <div class="popover-cell">
-                                    <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg>
+                                    <svg class="sf-symbol clip-type-icon" aria-hidden="true"><use href="sf-symbols.svg#sf-ellipsis"/></svg>
                                     <span>More</span>
                                 </div>
                             </div>
@@ -256,8 +263,10 @@
                     </div>
                 </div>
             </figure>
-            <h2>Width presets</h2>
-            <p>Resize the frontmost window to a saved width from the menu bar or ⌘⇧1–9.</p>
+            <div class="feature-copy">
+                <h2>Width presets</h2>
+                <p>Resize the frontmost window to a saved width from the menu bar or ⌘⇧1–9.</p>
+            </div>
         </article>
     </section>
 

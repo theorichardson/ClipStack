@@ -80,7 +80,7 @@ h1 {
     grid-template-areas:
         "clip  cap"
         "frame width";
-    gap: 20px 24px;
+    gap: 40px 24px;
     margin-bottom: 96px;
     align-items: stretch;
     width: 100%;
@@ -110,7 +110,7 @@ h1 {
             "cap"
             "frame"
             "width";
-        gap: 32px;
+        gap: 64px;
     }
 
     .product-visual {
@@ -131,16 +131,17 @@ h1 {
     justify-content: flex-start;
     align-items: stretch;
     min-height: 0;
+    gap: 20px;
 }
 
 .features h2 {
     font-size: 16px;
-    margin: 0 0 4px;
+    margin: 0 0 2px;
     font-weight: 600;
     letter-spacing: -0.01em;
 }
 
-.features p {
+.feature-copy p {
     margin: 0;
     color: var(--muted);
     font-size: 14px;
