@@ -1246,7 +1246,17 @@ img.title-app-icon {
     background: #006ee6;
 }
 
+@media (max-width: 720px) {
+    .scene-width .width-popover-group {
+        transform: scale(1.12);
+    }
+}
+
 @media (max-width: 560px) {
+    .scene-width .width-popover-group {
+        transform: scale(1.02);
+    }
+
     .mac-menubar-left .mac-menu-item:nth-child(n+3) {
         display: none;
     }
