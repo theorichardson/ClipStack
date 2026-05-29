@@ -1,8 +1,22 @@
 import AppKit
 import AVFoundation
+import ImageIO
 
 enum ClipEntryThumbnail {
-    private static let cache = NSCache<NSString, NSImage>()
+    private static let cache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 500
+        return cache
+    }()
+
+    private static let fileIconCache: NSCache<NSString, NSImage> = {
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 64
+        return cache
+    }()
+
+    /// Target size for list-row thumbnails (clipboard and downloads).
+    static let listThumbnailPixelSize: CGFloat = 64
 
     private static let imageExtensions: Set<String> = [
         "png", "jpg", "jpeg", "tif", "tiff", "heic", "gif", "bmp", "webp",
@@ -64,10 +78,50 @@ enum ClipEntryThumbnail {
         }
 
         if imageExtensions.contains(ext) {
-            return NSImage(contentsOf: url)
+            return downsampledImage(at: url, maxPixelSize: listThumbnailPixelSize)
         }
 
-        return NSImage(contentsOf: url)
+        return downsampledImage(at: url, maxPixelSize: listThumbnailPixelSize)
+    }
+
+    static func listThumbnail(forPath path: String) -> NSImage? {
+        let expanded = (path as NSString).expandingTildeInPath
+        let cacheKey = "list:\(expanded)" as NSString
+        if let cached = cache.object(forKey: cacheKey) {
+            return cached
+        }
+        let url = URL(fileURLWithPath: expanded)
+        guard let image = downsampledImage(at: url, maxPixelSize: listThumbnailPixelSize) else {
+            return nil
+        }
+        cache.setObject(image, forKey: cacheKey)
+        return image
+    }
+
+    static func fileIcon(forExtension ext: String) -> NSImage {
+        let key = (ext.isEmpty ? "__none__" : ext.lowercased()) as NSString
+        if let cached = fileIconCache.object(forKey: key) {
+            return cached
+        }
+        let icon = NSWorkspace.shared.icon(forFileType: ext.isEmpty ? "public.data" : ext)
+        fileIconCache.setObject(icon, forKey: key)
+        return icon
+    }
+
+    private static func downsampledImage(at url: URL, maxPixelSize: CGFloat) -> NSImage? {
+        let options: [CFString: Any] = [
+            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+        ]
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+            return nil
+        }
+        return NSImage(
+            cgImage: cgImage,
+            size: NSSize(width: cgImage.width, height: cgImage.height)
+        )
     }
 
     private static func videoThumbnail(for url: URL) -> NSImage? {

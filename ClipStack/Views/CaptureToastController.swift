@@ -100,6 +100,9 @@ final class CaptureToastController {
         previewView.onCopyButtonClicked = { [weak self] in
             self?.copyCurrentCaptureToClipboard()
         }
+        previewView.onCloseButtonClicked = { [weak self] in
+            self?.dismiss(animated: true)
+        }
         previewView.onDragWillBegin = { [weak self] in
             self?.handleDragWillBegin()
         }
@@ -423,6 +426,7 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
     var onHoverChanged: ((Bool) -> Void)?
     var onFrameButtonClicked: ((NSButton) -> Void)?
     var onCopyButtonClicked: (() -> Void)?
+    var onCloseButtonClicked: (() -> Void)?
     var onDragWillBegin: (() -> Void)?
     var onDragEnded: ((NSPoint, NSDragOperation) -> Void)?
 
@@ -434,6 +438,7 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
     private let hoverDarkTint = NSView()
     private let frameButton: HoverPillButton?
     private let copyButton: HoverPillButton
+    private let closeButton: HoverCircleIconButton
     private var trackingArea: NSTrackingArea?
     private var isHovering = false
     private var copyRevertWorkItem: DispatchWorkItem?
@@ -457,6 +462,7 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
             self.frameButton = nil
         }
         self.copyButton = Self.makePillButton(title: "Copy")
+        self.closeButton = Self.makeCloseButton()
 
         let frame = NSRect(
             x: 0,
@@ -535,8 +541,14 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
             imageContainer.addSubview(button)
         }
 
+        closeButton.target = self
+        closeButton.action = #selector(handleCloseButton)
+        imageContainer.addSubview(closeButton)
+
         layoutButtons()
+        layoutCloseButton()
         [frameButton, copyButton].compactMap { $0 }.forEach { $0.refreshAppearance() }
+        closeButton.refreshAppearance()
     }
 
     private func animateButtonLayout() {
@@ -581,6 +593,19 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
         window?.invalidateCursorRects(for: self)
     }
 
+    private func layoutCloseButton() {
+        let size: CGFloat = 22
+        let inset: CGFloat = 4
+        closeButton.frame = NSRect(
+            x: imageContainer.bounds.width - size - inset,
+            y: imageContainer.bounds.height - size - inset,
+            width: size,
+            height: size
+        )
+        closeButton.autoresizingMask = [.minXMargin, .minYMargin]
+        closeButton.layer?.cornerRadius = size / 2
+    }
+
     private static func makePillButton(title: String) -> HoverPillButton {
         let button = HoverPillButton()
         button.isBordered = false
@@ -588,6 +613,14 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
         button.setPillTitle(title)
         button.wantsLayer = true
         button.alphaValue = 0
+        return button
+    }
+
+    private static func makeCloseButton() -> HoverCircleIconButton {
+        let button = HoverCircleIconButton(symbolName: "xmark")
+        button.isBordered = false
+        button.bezelStyle = .smallSquare
+        button.wantsLayer = true
         return button
     }
 
@@ -618,6 +651,7 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
         for button in [frameButton, copyButton].compactMap({ $0 }) {
             button.refreshAppearance()
         }
+        closeButton.refreshAppearance()
     }
 
     @available(*, unavailable)
@@ -668,13 +702,16 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
 
     override func resetCursorRects() {
         super.resetCursorRects()
+
+        let closeRect = convert(closeButton.frame, from: imageContainer)
+        addCursorRect(closeRect, cursor: .pointingHand)
+
         guard isHovering else { return }
 
         let containerRect = convert(imageContainer.bounds, from: imageContainer)
         addCursorRect(containerRect, cursor: .openHand)
 
-        let buttons: [HoverPillButton] = [frameButton, copyButton].compactMap { $0 }
-        for button in buttons {
+        for button in [frameButton, copyButton].compactMap({ $0 }) {
             let buttonRect = convert(button.frame, from: imageContainer)
             addCursorRect(buttonRect, cursor: .pointingHand)
         }
@@ -686,19 +723,23 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
     }
 
     private func cursor(at pointInContainer: NSPoint) -> NSCursor {
-        guard isHovering, imageContainer.bounds.contains(pointInContainer) else {
+        guard imageContainer.bounds.contains(pointInContainer) else {
             return .arrow
         }
-        let buttons: [HoverPillButton] = [frameButton, copyButton].compactMap { $0 }
-        if buttons.contains(where: { $0.frame.contains(pointInContainer) }) {
+        if closeButton.frame.contains(pointInContainer) {
+            return .pointingHand
+        }
+        guard isHovering else { return .arrow }
+        if [frameButton, copyButton].compactMap({ $0 }).contains(where: { $0.frame.contains(pointInContainer) }) {
             return .pointingHand
         }
         return .openHand
     }
 
     private func syncButtonHover(at pointInContainer: NSPoint) {
-        let buttons: [HoverPillButton] = [frameButton, copyButton].compactMap { $0 }
-        for button in buttons {
+        closeButton.syncPointerHover(isPointerInside: closeButton.frame.contains(pointInContainer))
+        let pillButtons: [HoverPillButton] = [frameButton, copyButton].compactMap { $0 }
+        for button in pillButtons {
             button.syncPointerHover(isPointerInside: isHovering && button.frame.contains(pointInContainer))
         }
     }
@@ -822,6 +863,10 @@ private final class CapturePreviewView: NSView, NSDraggingSource {
     @objc private func handleFrameButton() {
         guard let button = frameButton else { return }
         onFrameButtonClicked?(button)
+    }
+
+    @objc private func handleCloseButton() {
+        onCloseButtonClicked?()
     }
 
     @objc private func handleCopyButton() {
@@ -991,5 +1036,137 @@ private final class HoverPillButton: NSButton {
 
     var pillTitle: String {
         (titleLayer.string as? String) ?? ""
+    }
+}
+
+/// Circular icon button matching `HoverPillButton` chrome (always visible on the toast).
+private final class HoverCircleIconButton: NSButton {
+    private let iconView = NSImageView()
+    private let symbolName: String
+    private var trackingArea: NSTrackingArea?
+    private var baseBackgroundColor: NSColor = NSColor.white.withAlphaComponent(0.92)
+    private var hoverBackgroundColor: NSColor = NSColor.white.withAlphaComponent(1.0)
+    private var pressedBackgroundColor: NSColor = NSColor.white.withAlphaComponent(0.70)
+    private var isHovering = false {
+        didSet { applyBackground() }
+    }
+    private var isPressed = false {
+        didSet { applyBackground() }
+    }
+
+    override var wantsUpdateLayer: Bool { true }
+
+    init(symbolName: String) {
+        self.symbolName = symbolName
+        super.init(frame: .zero)
+        commonInit()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        nil
+    }
+
+    private func commonInit() {
+        wantsLayer = true
+        title = ""
+        attributedTitle = NSAttributedString()
+
+        iconView.imageScaling = .scaleProportionallyDown
+        iconView.autoresizingMask = [.width, .height]
+        addSubview(iconView)
+        refreshAppearance()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        refreshAppearance()
+    }
+
+    func refreshAppearance() {
+        let isDark = viewUsesDarkAppearance(self)
+        if isDark {
+            baseBackgroundColor = NSColor(white: 0.13, alpha: 0.94)
+            hoverBackgroundColor = NSColor(white: 0.20, alpha: 1.0)
+            pressedBackgroundColor = NSColor(white: 0.09, alpha: 0.82)
+            layer?.borderColor = NSColor.white.withAlphaComponent(0.14).cgColor
+            layer?.shadowOpacity = 0.45
+        } else {
+            baseBackgroundColor = NSColor.white.withAlphaComponent(0.92)
+            hoverBackgroundColor = NSColor.white.withAlphaComponent(1.0)
+            pressedBackgroundColor = NSColor.white.withAlphaComponent(0.70)
+            layer?.borderColor = NSColor.black.withAlphaComponent(0.08).cgColor
+            layer?.shadowOpacity = 0.18
+        }
+        layer?.borderWidth = 0.5
+        layer?.shadowColor = NSColor.black.cgColor
+        layer?.shadowRadius = 6
+        layer?.shadowOffset = CGSize(width: 0, height: -1)
+        layer?.masksToBounds = false
+
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 9, weight: .semibold)
+        let tint = isDark ? NSColor(white: 0.96, alpha: 1.0) : NSColor(white: 0.10, alpha: 0.92)
+        iconView.contentTintColor = tint
+        iconView.image = NSImage(
+            systemSymbolName: symbolName,
+            accessibilityDescription: "Close"
+        )?.withSymbolConfiguration(symbolConfig)
+
+        applyBackground()
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    override func resetCursorRects() {}
+
+    override func mouseEntered(with event: NSEvent) {
+        isHovering = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHovering = false
+    }
+
+    func syncPointerHover(isPointerInside: Bool) {
+        isHovering = isPointerInside
+    }
+
+    override func layout() {
+        super.layout()
+        let inset: CGFloat = 5
+        iconView.frame = bounds.insetBy(dx: inset, dy: inset)
+        layer?.cornerRadius = bounds.height / 2
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        isPressed = true
+        super.mouseDown(with: event)
+        isPressed = false
+        isHovering = bounds.contains(convert(event.locationInWindow, from: nil))
+    }
+
+    private func applyBackground() {
+        let color: NSColor
+        if isPressed {
+            color = pressedBackgroundColor
+        } else if isHovering {
+            color = hoverBackgroundColor
+        } else {
+            color = baseBackgroundColor
+        }
+        layer?.backgroundColor = color.cgColor
     }
 }

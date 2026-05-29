@@ -34,7 +34,6 @@ final class ClipStackDownloadsIndexer: ObservableObject {
 
     private var loadTask: Task<Void, Never>?
 
-    private static let uiBatchSize = 150
     private static let maxFiles = 10_000
 
     private static let incompleteSuffixes = [".download", ".crdownload", ".part", ".partial"]
@@ -53,30 +52,9 @@ final class ClipStackDownloadsIndexer: ObservableObject {
 
             guard !Task.isCancelled else { return }
 
-            if scanned.isEmpty {
-                isLoading = false
-                return
-            }
+            guard !Task.isCancelled else { return }
 
-            var accumulated: [ClipStackDownloadItem] = []
-            accumulated.reserveCapacity(scanned.count)
-
-            var batchStart = scanned.startIndex
-            while batchStart < scanned.endIndex {
-                guard !Task.isCancelled else { return }
-
-                let batchEnd = scanned.index(
-                    batchStart,
-                    offsetBy: Self.uiBatchSize,
-                    limitedBy: scanned.endIndex
-                ) ?? scanned.endIndex
-
-                accumulated.append(contentsOf: scanned[batchStart..<batchEnd])
-                items = accumulated
-                batchStart = batchEnd
-                await Task.yield()
-            }
-
+            items = scanned
             isLoading = false
         }
     }

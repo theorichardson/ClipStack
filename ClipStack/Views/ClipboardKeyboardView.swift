@@ -145,20 +145,6 @@ struct ClipboardKeyboardView: View {
                         .padding(.horizontal, RowLayout.inset)
                         .padding(.vertical, RowLayout.inset)
                     }
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        if isDownloadsMode, downloadsIndexer.isLoading, !downloadsIndexer.items.isEmpty {
-                            HStack(spacing: 6) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("Loading more…")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 6)
-                            .background(.bar)
-                        }
-                    }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .onChange(of: scrollTrigger) { _, newValue in
                         guard let newValue else { return }
@@ -229,8 +215,8 @@ struct ClipboardKeyboardView: View {
             }
             syncSelectionToVisibleRows()
         }
-        .onChange(of: downloadsIndexer.items.map(\.id)) { _, _ in
-            guard isDownloadsMode else { return }
+        .onChange(of: downloadsIndexer.isLoading) { wasLoading, isLoading in
+            guard isDownloadsMode, wasLoading, !isLoading else { return }
             syncSelectionToVisibleRows()
         }
         .onChange(of: visibleRowKeys) { _, _ in
@@ -568,9 +554,7 @@ private struct DownloadsKeyboardRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: RowLayout.iconTextSpacing) {
-            downloadThumbnail
-                .frame(width: RowLayout.iconSize, height: RowLayout.iconSize)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            DownloadItemIcon(item: item, size: RowLayout.iconSize)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.displayTitle)
@@ -588,25 +572,43 @@ private struct DownloadsKeyboardRow: View {
             Spacer(minLength: 0)
         }
     }
+}
 
-    @ViewBuilder
-    private var downloadThumbnail: some View {
-        if item.isImage,
-           let image = ClipEntryThumbnail.image(
-               imagePath: item.url.path,
-               textContent: nil,
-               contentType: ClipboardContentType.image.rawValue
-           ) {
-            Image(nsImage: image)
-                .resizable()
-                .interpolation(.high)
-                .aspectRatio(contentMode: .fill)
-        } else {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: item.url.path))
-                .resizable()
-                .interpolation(.high)
-                .aspectRatio(contentMode: .fit)
-                .padding(4)
+private struct DownloadItemIcon: View {
+    let item: ClipStackDownloadItem
+    let size: CGFloat
+
+    @State private var thumbnail: NSImage?
+
+    var body: some View {
+        Group {
+            if let thumbnail {
+                Image(nsImage: thumbnail)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: item.isImage ? "photo" : "doc")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .task(id: item.id) {
+            let path = item.url.path
+            let isImage = item.isImage
+            let ext = item.fileExtension
+
+            let loaded = await Task.detached(priority: .utility) {
+                if isImage {
+                    return ClipEntryThumbnail.listThumbnail(forPath: path)
+                }
+                return ClipEntryThumbnail.fileIcon(forExtension: ext)
+            }.value
+
+            thumbnail = loaded
         }
     }
 }
