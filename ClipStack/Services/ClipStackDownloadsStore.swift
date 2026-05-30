@@ -2,7 +2,8 @@ import Foundation
 
 struct ClipStackDownloadItem: Identifiable, Hashable, Sendable {
     let url: URL
-    let modifiedAt: Date
+    /// When the file landed in Downloads — not content modification time, which browsers often copy from the server.
+    let downloadedAt: Date
 
     var id: String { url.path }
 
@@ -33,6 +34,7 @@ final class ClipStackDownloadsIndexer: ObservableObject {
     @Published private(set) var isLoading = false
 
     private var loadTask: Task<Void, Never>?
+    private var refreshToken = UUID()
 
     private static let maxFiles = 10_000
 
@@ -41,28 +43,33 @@ final class ClipStackDownloadsIndexer: ObservableObject {
     private init() {}
 
     func refresh() {
-        loadTask?.cancel()
-        loadTask = Task {
-            isLoading = true
-            items = []
+        refreshToken = UUID()
+        guard loadTask == nil else { return }
+        loadTask = Task { await runRefreshLoop() }
+    }
+
+    private func runRefreshLoop() async {
+        while true {
+            let token = refreshToken
+            let showLoadingIndicator = items.isEmpty
+            if showLoadingIndicator {
+                isLoading = true
+            }
 
             let scanned = await Task.detached(priority: .userInitiated) {
                 Self.scanDownloadsDirectory()
             }.value
 
-            guard !Task.isCancelled else { return }
+            if showLoadingIndicator {
+                isLoading = false
+            }
 
-            guard !Task.isCancelled else { return }
+            guard token == refreshToken else { continue }
 
             items = scanned
-            isLoading = false
+            loadTask = nil
+            return
         }
-    }
-
-    func cancelLoading() {
-        loadTask?.cancel()
-        loadTask = nil
-        isLoading = false
     }
 
     nonisolated private static func scanDownloadsDirectory() -> [ClipStackDownloadItem] {
@@ -70,7 +77,12 @@ final class ClipStackDownloadsIndexer: ObservableObject {
             return []
         }
 
-        let keys: Set<URLResourceKey> = [.contentModificationDateKey, .isRegularFileKey]
+        let keys: Set<URLResourceKey> = [
+            .contentModificationDateKey,
+            .creationDateKey,
+            .addedToDirectoryDateKey,
+            .isRegularFileKey,
+        ]
         guard let urls = try? FileManager.default.contentsOfDirectory(
             at: directory,
             includingPropertiesForKeys: Array(keys),
@@ -94,11 +106,23 @@ final class ClipStackDownloadsIndexer: ObservableObject {
             let values = try? url.resourceValues(forKeys: keys)
             guard values?.isRegularFile == true else { continue }
 
-            let modifiedAt = values?.contentModificationDate ?? .distantPast
-            items.append(ClipStackDownloadItem(url: url, modifiedAt: modifiedAt))
+            let downloadedAt = Self.downloadedAt(from: values)
+            items.append(ClipStackDownloadItem(url: url, downloadedAt: downloadedAt))
         }
 
-        items.sort { $0.modifiedAt > $1.modifiedAt }
+        items.sort {
+            if $0.downloadedAt != $1.downloadedAt {
+                return $0.downloadedAt > $1.downloadedAt
+            }
+            return $0.filename.localizedStandardCompare($1.filename) == .orderedAscending
+        }
         return items
+    }
+
+    nonisolated private static func downloadedAt(from values: URLResourceValues?) -> Date {
+        values?.addedToDirectoryDate
+            ?? values?.creationDate
+            ?? values?.contentModificationDate
+            ?? .distantPast
     }
 }

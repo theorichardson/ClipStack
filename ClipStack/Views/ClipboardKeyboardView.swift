@@ -210,8 +210,6 @@ struct ClipboardKeyboardView: View {
         .onChange(of: sourceFilterKey) { _, newValue in
             if newValue == ClipStackDownloadsStore.filterKey {
                 downloadsIndexer.refresh()
-            } else {
-                downloadsIndexer.cancelLoading()
             }
             syncSelectionToVisibleRows()
         }
@@ -385,9 +383,7 @@ struct ClipboardKeyboardView: View {
     private func prepareForDisplay() {
         cancelRename()
         searchText = ""
-        if sourceFilterKey == ClipStackDownloadsStore.filterKey {
-            downloadsIndexer.refresh()
-        }
+        downloadsIndexer.refresh()
         if sourceFilterKey != ClipStackDownloadsStore.filterKey {
             sourceFilterKey = nil
         }
@@ -563,7 +559,7 @@ private struct DownloadsKeyboardRow: View {
                     .font(.body)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text("Downloads · \(item.modifiedAt.clipMenuTimestamp)")
+                Text("Downloads · \(item.downloadedAt.clipMenuTimestamp)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
