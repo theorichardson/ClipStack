@@ -40,8 +40,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.theorichardson.ClipStack
         PRODUCT_NAME: ClipStack
-        MARKETING_VERSION: "1.0.1"
-        CURRENT_PROJECT_VERSION: "2"
+        MARKETING_VERSION: "1.0.2"
+        CURRENT_PROJECT_VERSION: "3"
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_ENTITLEMENTS: ClipStack/ClipStack.entitlements
@@ -66,3 +66,4 @@ targets:
       - package: Sparkle
       - sdk: ScreenCaptureKit.framework
       - sdk: AVFoundation.framework
+      - sdk: AVKit.framework

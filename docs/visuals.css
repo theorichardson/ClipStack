@@ -394,7 +394,7 @@
     margin: 4px 8px;
 }
 
-/* Clipboard panel — ClipboardKeyboardView (280×400) */
+/* Clipboard panel — ClipboardKeyboardView (580×420, list + detail) */
 .clipstack-panel {
     position: absolute;
     z-index: 25;

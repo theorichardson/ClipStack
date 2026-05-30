@@ -80,6 +80,16 @@ struct ClipboardKeyboardView: View {
         return filteredEntries.map { rowKey(for: $0) }
     }
 
+    private var activeEntry: ClipboardEntry? {
+        guard let activeRowKey, !isDownloadsMode else { return nil }
+        return filteredEntries.first { rowKey(for: $0) == activeRowKey }
+    }
+
+    private var activeDownload: ClipStackDownloadItem? {
+        guard let activeRowKey, isDownloadsMode else { return nil }
+        return filteredDownloads.first { $0.id == activeRowKey }
+    }
+
     private var availableSourceFilters: [ClipSourceFilter] {
         var seen: Set<String> = []
         var result: [ClipSourceFilter] = []
@@ -114,49 +124,15 @@ struct ClipboardKeyboardView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-                            if isDownloadsMode {
-                                ForEach(filteredDownloads) { item in
-                                    InsetSelectableRow(
-                                        isSelected: selectedRowKeys.contains(item.id),
-                                        isActive: activeRowKey == item.id,
-                                        onSingleClick: { copyDownloadFromRowClick(item) }
-                                    ) {
-                                        DownloadsKeyboardRow(item: item)
-                                    }
-                                    .id(item.id)
-                                }
-                            } else {
-                                ForEach(filteredEntries) { entry in
-                                    InsetSelectableRow(
-                                        isSelected: selectedRowKeys.contains(rowKey(for: entry)),
-                                        isActive: activeRowKey == rowKey(for: entry),
-                                        onSingleClick: { copyEntryFromRowClick(entry) },
-                                        onDoubleClick: { beginRename(entry) }
-                                    ) {
-                                        ClipboardKeyboardRow(entry: entry)
-                                    }
-                                    .id(rowKey(for: entry))
-                                }
-                            }
-                        }
-                        .padding(.horizontal, RowLayout.inset)
-                        .padding(.vertical, RowLayout.inset)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .onChange(of: scrollTrigger) { _, newValue in
-                        guard let newValue else { return }
-                        proxy.scrollTo(newValue, anchor: .center)
-                    }
-                    .onReceive(NotificationCenter.default.publisher(for: .clipStackPanelDidShow)) { _ in
-                        guard let activeRowKey else { return }
-                        DispatchQueue.main.async {
-                            proxy.scrollTo(activeRowKey, anchor: .center)
-                        }
-                    }
+                HStack(spacing: 0) {
+                    clipListColumn
+                    ClipKeyboardDetailPanel(
+                        entry: activeEntry,
+                        download: activeDownload,
+                        selectedCount: selectedRowKeys.count
+                    )
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             if isRenaming, let entry = renamingEntry {
@@ -225,6 +201,53 @@ struct ClipboardKeyboardView: View {
                 .keyboardShortcut("c", modifiers: .command)
                 .opacity(0)
                 .frame(width: 0, height: 0)
+        }
+    }
+
+    private var clipListColumn: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    if isDownloadsMode {
+                        ForEach(filteredDownloads) { item in
+                            InsetSelectableRow(
+                                isSelected: selectedRowKeys.contains(item.id),
+                                isActive: activeRowKey == item.id,
+                                onSingleClick: { copyDownloadFromRowClick(item) }
+                            ) {
+                                DownloadsKeyboardRow(item: item)
+                            }
+                            .id(item.id)
+                        }
+                    } else {
+                        ForEach(filteredEntries) { entry in
+                            InsetSelectableRow(
+                                isSelected: selectedRowKeys.contains(rowKey(for: entry)),
+                                isActive: activeRowKey == rowKey(for: entry),
+                                onSingleClick: { copyEntryFromRowClick(entry) },
+                                onDoubleClick: { beginRename(entry) }
+                            ) {
+                                ClipboardKeyboardRow(entry: entry)
+                            }
+                            .id(rowKey(for: entry))
+                        }
+                    }
+                }
+                .padding(.horizontal, RowLayout.inset)
+                .padding(.vertical, RowLayout.inset)
+            }
+            .frame(width: PanelLayout.listWidth)
+            .frame(maxHeight: .infinity)
+            .onChange(of: scrollTrigger) { _, newValue in
+                guard let newValue else { return }
+                proxy.scrollTo(newValue, anchor: .center)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .clipStackPanelDidShow)) { _ in
+                guard let activeRowKey else { return }
+                DispatchQueue.main.async {
+                    proxy.scrollTo(activeRowKey, anchor: .center)
+                }
+            }
         }
     }
 
@@ -576,17 +599,26 @@ private struct DownloadItemIcon: View {
 
     @State private var thumbnail: NSImage?
 
+    private var isVisualFile: Bool {
+        item.isImage || ClipEntryThumbnail.isVisualMediaPath(item.url.path)
+    }
+
     var body: some View {
         Group {
             if let thumbnail {
                 Image(nsImage: thumbnail)
                     .resizable()
                     .scaledToFill()
-            } else {
-                Image(systemName: item.isImage ? "photo" : "doc")
+            } else if isVisualFile {
+                Image(systemName: "photo")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                Image(nsImage: ClipEntryThumbnail.fileIcon(forExtension: item.fileExtension))
+                    .resizable()
+                    .scaledToFit()
+                    .padding(4)
             }
         }
         .frame(width: size, height: size)
@@ -594,17 +626,20 @@ private struct DownloadItemIcon: View {
         .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .task(id: item.id) {
             let path = item.url.path
-            let isImage = item.isImage
-            let ext = item.fileExtension
+            let loadVisual = isVisualFile
 
-            let loaded = await Task.detached(priority: .utility) {
-                if isImage {
+            let loaded = await Task.detached(priority: .userInitiated) {
+                if loadVisual {
                     return ClipEntryThumbnail.listThumbnail(forPath: path)
                 }
-                return ClipEntryThumbnail.fileIcon(forExtension: ext)
+                return nil
             }.value
 
-            thumbnail = loaded
+            if loadVisual {
+                thumbnail = loaded
+            } else {
+                thumbnail = ClipEntryThumbnail.fileIcon(forExtension: item.fileExtension)
+            }
         }
     }
 }
@@ -670,6 +705,10 @@ private struct ClipboardKeyboardRow: View {
             Spacer(minLength: 0)
         }
     }
+}
+
+private enum PanelLayout {
+    static let listWidth: CGFloat = 268
 }
 
 private enum RowLayout {

@@ -25,6 +25,7 @@
 		38A22B38FFC82423FE2EC859 /* AppModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53E4436B40C55A08E5C97F5A /* AppModelContainer.swift */; };
 		3917EB1DFD9B6583E7AF255F /* WallpaperFrame.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5298CE0F84B1447AEF03AC16 /* WallpaperFrame.swift */; };
 		3BC86A065DF781020DF54135 /* ClipStackDownloadsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A38E0C970EE721DF0CCD8D30 /* ClipStackDownloadsStore.swift */; };
+		3F12CF73811E2E2EA07731C9 /* DownloadDetailVideoPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662915C0074A76B059C8E4AF /* DownloadDetailVideoPlayer.swift */; };
 		4279D05EB5849ADBB561BC77 /* WallpaperFrameLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A76ED578606AABEE6B8E79D1 /* WallpaperFrameLibrary.swift */; };
 		48DF5A94E202473454236055 /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A3A6CB12A150B55168B312 /* HotKeyManager.swift */; };
 		4ACE22E4A43D6D22A2F54FEA /* sequoia-sunrise.png in Resources */ = {isa = PBXBuildFile; fileRef = 57AF0CA47B5466F4BECE8D17 /* sequoia-sunrise.png */; };
@@ -57,6 +58,8 @@
 		D749DA8B8CC480EB8FCF20F8 /* tahoe-light.png in Resources */ = {isa = PBXBuildFile; fileRef = 63016E459E9FD41EA2FBE3EA /* tahoe-light.png */; };
 		DC50BFC337FC899C0B569564 /* RegionOverlayController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC4D0CD56BF48496008434F /* RegionOverlayController.swift */; };
 		DEFCE4914CFD3F8A2941DC91 /* ManageCapturePresetsWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB707BF16F382FDD1D5066E9 /* ManageCapturePresetsWindowController.swift */; };
+		E6D9F1D4603F45E27BF5296A /* ClipKeyboardDetailPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB08572C901A118EF1687DD5 /* ClipKeyboardDetailPanel.swift */; };
+		ECD4746B4D4A52C722DFF956 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 36AE5113E2F34DFD0DD96F2D /* AVKit.framework */; };
 		EE422B0F93D3A174954BA39D /* CaptureSelectionBadgeHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E2BAC2A5A4519F0FE603173 /* CaptureSelectionBadgeHost.swift */; };
 		F0F34EFD223F1515671059E0 /* WindowPickerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA9FAAC68248813A06ABCC55 /* WindowPickerController.swift */; };
 		F3646EF2FF0988FB75DE931F /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 5053D96CBC31A6AC04EE4F07 /* KeyboardShortcuts */; };
@@ -79,6 +82,7 @@
 		330DA393B8126F81C67AD6EB /* ClipEntryRowLabels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEntryRowLabels.swift; sourceTree = "<group>"; };
 		35D993017A2EAAEA9BE82F28 /* WidthPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidthPreset.swift; sourceTree = "<group>"; };
 		3685DAD64FB238C176B0E70A /* CaptureToastController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureToastController.swift; sourceTree = "<group>"; };
+		36AE5113E2F34DFD0DD96F2D /* AVKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVKit.framework; path = System/Library/Frameworks/AVKit.framework; sourceTree = SDKROOT; };
 		414C06CAD6CBBB92196136E5 /* RecordingDimOverlayController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingDimOverlayController.swift; sourceTree = "<group>"; };
 		4388B968F70BE0DB4B91D8FC /* ScreenCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureService.swift; sourceTree = "<group>"; };
 		44F3CA1AD2F1332D79B48B79 /* PasteboardMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteboardMonitor.swift; sourceTree = "<group>"; };
@@ -98,6 +102,7 @@
 		62E40AE7A5000372F2127B77 /* ClipRenameBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipRenameBar.swift; sourceTree = "<group>"; };
 		63016E459E9FD41EA2FBE3EA /* tahoe-light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "tahoe-light.png"; sourceTree = "<group>"; };
 		63BA73FFE503436DF04B9B92 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		662915C0074A76B059C8E4AF /* DownloadDetailVideoPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadDetailVideoPlayer.swift; sourceTree = "<group>"; };
 		70A8B5FF4D77AD6603B7B6AC /* ScreenCoordinates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCoordinates.swift; sourceTree = "<group>"; };
 		83BD87349207258D418C17A3 /* CapturePresetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePresetStore.swift; sourceTree = "<group>"; };
 		8AE633B1AF39F3084ACB13BD /* CaptureActionSymbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureActionSymbol.swift; sourceTree = "<group>"; };
@@ -117,6 +122,7 @@
 		BB4E160D4DAE7C7F93BA103B /* ClipEntryLeadingIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipEntryLeadingIcon.swift; sourceTree = "<group>"; };
 		C0A3A6CB12A150B55168B312 /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
 		C5A4D0737AA92751C8DF31B4 /* sequoia-light.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sequoia-light.png"; sourceTree = "<group>"; };
+		CB08572C901A118EF1687DD5 /* ClipKeyboardDetailPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipKeyboardDetailPanel.swift; sourceTree = "<group>"; };
 		D38061566A7F97BB4FE27BCD /* CapturePreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePreset.swift; sourceTree = "<group>"; };
 		D54D28040278DA6DFB065A18 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		D6F762A13D0729BE0BC9EE04 /* WindowResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowResizer.swift; sourceTree = "<group>"; };
@@ -138,6 +144,7 @@
 				A8D4B01E1BD7234FE3C1D9A6 /* Sparkle in Frameworks */,
 				1EFF696220EBC543548BE343 /* ScreenCaptureKit.framework in Frameworks */,
 				9493FCDFD69178AF175776CF /* AVFoundation.framework in Frameworks */,
+				ECD4746B4D4A52C722DFF956 /* AVKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -182,8 +189,10 @@
 				4C8086AC9C3F2CBC99D72C50 /* ClipboardKeyboardView.swift */,
 				BB4E160D4DAE7C7F93BA103B /* ClipEntryLeadingIcon.swift */,
 				330DA393B8126F81C67AD6EB /* ClipEntryRowLabels.swift */,
+				CB08572C901A118EF1687DD5 /* ClipKeyboardDetailPanel.swift */,
 				62E40AE7A5000372F2127B77 /* ClipRenameBar.swift */,
 				5E6AABD00AEE073CAE9811EF /* ClipStackPanelView.swift */,
+				662915C0074A76B059C8E4AF /* DownloadDetailVideoPlayer.swift */,
 				0D9B634D8A7F81B967797A99 /* HideTextFieldFocusRing.swift */,
 				17889F6CA04E5C396C7D78F5 /* KeyboardNavigationHandlers.swift */,
 				EB707BF16F382FDD1D5066E9 /* ManageCapturePresetsWindowController.swift */,
@@ -223,6 +232,7 @@
 			isa = PBXGroup;
 			children = (
 				F6F40FB1ED7600A64FB58F72 /* AVFoundation.framework */,
+				36AE5113E2F34DFD0DD96F2D /* AVKit.framework */,
 				A7F7677ADC2BA0B72BDCEBF5 /* ScreenCaptureKit.framework */,
 			);
 			name = Frameworks;
@@ -377,6 +387,7 @@
 				133991DEE4C63F117D8A05E6 /* ClipEntryLeadingIcon.swift in Sources */,
 				1D760B7B9A97B8264B50317A /* ClipEntryRowLabels.swift in Sources */,
 				F52A07CBAD035B8F51051478 /* ClipEntryThumbnail.swift in Sources */,
+				E6D9F1D4603F45E27BF5296A /* ClipKeyboardDetailPanel.swift in Sources */,
 				63A861CE44CD0EAB8DF39896 /* ClipRenameBar.swift in Sources */,
 				3BC86A065DF781020DF54135 /* ClipStackDownloadsStore.swift in Sources */,
 				C7BC139F7D407DB2F420D39B /* ClipStackPanelView.swift in Sources */,
@@ -384,6 +395,7 @@
 				F51F6CCC9DE42E96DEBC4373 /* ClipboardKeyboardView.swift in Sources */,
 				23C6499D022468FB17EECB41 /* ClipboardStore.swift in Sources */,
 				661BE62CAE15AD29224B240B /* Date+ClipFormatting.swift in Sources */,
+				3F12CF73811E2E2EA07731C9 /* DownloadDetailVideoPlayer.swift in Sources */,
 				707FD31FCF6D3C23A7F355CF /* HideTextFieldFocusRing.swift in Sources */,
 				48DF5A94E202473454236055 /* HotKeyManager.swift in Sources */,
 				0FC71F0CF41DEE4DF86C4F9C /* ImageFramer.swift in Sources */,
