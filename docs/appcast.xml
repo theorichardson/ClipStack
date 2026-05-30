@@ -21,6 +21,14 @@
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/theorichardson/ClipStack/releases/download/v1.0.0/ClipStack-1.0.0.dmg" type="application/octet-stream" sparkle:edSignature="D2EPZb2yQnJzwAe3FRYCHWj4qXA9uaVGSiTBoEoLTiJtg4hMAjm2eok+wdmhjME7QBBjPe8WOOc+AOLBa+2BCg==" length="5341642" />
         </item>
+        <item>
+            <title>ClipStack 1.0.2</title>
+            <pubDate>Sat, 30 May 2026 20:50:19 +0000</pubDate>
+            <sparkle:version>202605301647</sparkle:version>
+            <sparkle:shortVersionString>1.0.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/theorichardson/ClipStack/releases/download/v1.0.2/ClipStack-1.0.2.dmg" type="application/octet-stream" sparkle:edSignature="EcO59X7PxyACGlrHNth44VKKiCBHkMZMuVaL7GVJdFibr3/glevi0egErTV6D2/H+d0Zcgt+j6H6WfVqN/mNCg==" length="5138547" />
+        </item>
         <!-- NEW_ITEMS_ABOVE -->
     </channel>
 </rss>
