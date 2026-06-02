@@ -62,6 +62,9 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 struct SettingsView: View {
     var body: some View {
         TabView {
+            GeneralSettingsPane()
+                .tabItem { Label("General", systemImage: "gearshape") }
+
             ClipStackSettingsPane()
                 .tabItem { Label("Clipboard", systemImage: "doc.on.clipboard") }
 
@@ -75,6 +78,27 @@ struct SettingsView: View {
         .padding()
         .onAppear {
             NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+}
+
+private struct GeneralSettingsPane: View {
+    @State private var launchAtLogin = LaunchAtLoginManager.isEnabled
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle("Open ClipStack at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        LaunchAtLoginManager.isEnabled = enabled
+                    }
+            } footer: {
+                Text("ClipStack starts automatically when you log in to your Mac. You can also manage this under System Settings → General → Login Items.")
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear {
+            launchAtLogin = LaunchAtLoginManager.isEnabled
         }
     }
 }

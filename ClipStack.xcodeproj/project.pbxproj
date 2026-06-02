@@ -41,6 +41,7 @@
 		9493FCDFD69178AF175776CF /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6F40FB1ED7600A64FB58F72 /* AVFoundation.framework */; };
 		94D417759BCE49DF5C8579AD /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F824237740C8E6395E793F /* PermissionManager.swift */; };
 		9613F1716D3373FF6889099F /* WidthPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35D993017A2EAAEA9BE82F28 /* WidthPreset.swift */; };
+		97016C0BD8529FB0D296E6AE /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E45D87B4CD920D03E8B1646D /* LaunchAtLoginManager.swift */; };
 		996BDCDDA8359766AB3543F8 /* PresetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8409B947DC3C998D3CD9C17 /* PresetStore.swift */; };
 		9E8F7D3C1EB5E415F9EC08BA /* RegionSelectorController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F6D1475373E63AB7C1A246E /* RegionSelectorController.swift */; };
 		A8D4B01E1BD7234FE3C1D9A6 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 538EA44C3BFE920722E41DE5 /* Sparkle */; };
@@ -127,6 +128,7 @@
 		D54D28040278DA6DFB065A18 /* SettingsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsWindowController.swift; sourceTree = "<group>"; };
 		D6F762A13D0729BE0BC9EE04 /* WindowResizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowResizer.swift; sourceTree = "<group>"; };
 		DDDB9D2C18D138F6E4748D1A /* PanelController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanelController.swift; sourceTree = "<group>"; };
+		E45D87B4CD920D03E8B1646D /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		E955B7B5C9C6E8ACA5E86022 /* ClipboardEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardEntry.swift; sourceTree = "<group>"; };
 		EB707BF16F382FDD1D5066E9 /* ManageCapturePresetsWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageCapturePresetsWindowController.swift; sourceTree = "<group>"; };
 		F15A4ECCAA9A7372DB15A7E8 /* ClipboardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStore.swift; sourceTree = "<group>"; };
@@ -218,6 +220,7 @@
 				A38E0C970EE721DF0CCD8D30 /* ClipStackDownloadsStore.swift */,
 				1E1984BF89FE4C74F4F1A0D4 /* ImageFramer.swift */,
 				F403C9196360A81507D28C9E /* LastScreenshotRegionStore.swift */,
+				E45D87B4CD920D03E8B1646D /* LaunchAtLoginManager.swift */,
 				44F3CA1AD2F1332D79B48B79 /* PasteboardMonitor.swift */,
 				32F824237740C8E6395E793F /* PermissionManager.swift */,
 				B8409B947DC3C998D3CD9C17 /* PresetStore.swift */,
@@ -401,6 +404,7 @@
 				0FC71F0CF41DEE4DF86C4F9C /* ImageFramer.swift in Sources */,
 				B02B9169D696DB9DC4F1A4B8 /* KeyboardNavigationHandlers.swift in Sources */,
 				CF924FB4F6AD9009A22458E5 /* LastScreenshotRegionStore.swift in Sources */,
+				97016C0BD8529FB0D296E6AE /* LaunchAtLoginManager.swift in Sources */,
 				DEFCE4914CFD3F8A2941DC91 /* ManageCapturePresetsWindowController.swift in Sources */,
 				866DBB21FA4CCFB4C64E5A91 /* ManagePresetsWindowController.swift in Sources */,
 				37D6F3FC76FF24596F96AE08 /* PanelController.swift in Sources */,

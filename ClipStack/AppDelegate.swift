@@ -58,6 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         bootstrapClipboardStack()
+        LaunchAtLoginManager.syncWithPreference()
 
         _ = updaterController
 
