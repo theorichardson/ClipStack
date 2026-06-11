@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import ScreenCaptureKit
 
 enum WindowResizerError: LocalizedError {
     case accessibilityNotGranted
@@ -40,6 +41,84 @@ enum WindowResizer {
         var size = try windowSize(for: window)
         size.width = width
         try setWindowSize(size, for: window)
+    }
+
+    /// Brings the recorded window's app to the foreground and raises that
+    /// specific window so the user can interact with it during capture.
+    static func activateAndFocus(window scWindow: SCWindow) {
+        guard let owner = scWindow.owningApplication else { return }
+        let pid = pid_t(owner.processID)
+
+        NSRunningApplication(processIdentifier: pid)?.activate(
+            options: [.activateIgnoringOtherApps, .activateAllWindows]
+        )
+
+        guard isAccessibilityTrusted,
+              let axWindow = accessibilityWindow(matching: scWindow, pid: pid) else {
+            return
+        }
+
+        let appElement = AXUIElementCreateApplication(pid)
+        AXUIElementSetAttributeValue(appElement, kAXFocusedWindowAttribute as CFString, axWindow)
+        AXUIElementPerformAction(axWindow, kAXRaiseAction as CFString)
+    }
+
+    private static func accessibilityWindow(matching scWindow: SCWindow, pid: pid_t) -> AXUIElement? {
+        let appElement = AXUIElementCreateApplication(pid)
+        guard let axWindows = copyAttribute(kAXWindowsAttribute, from: appElement) as [AXUIElement]? else {
+            return nil
+        }
+
+        return axWindows.first { axWindowMatches($0, scWindow: scWindow) }
+    }
+
+    private static func axWindowMatches(_ axWindow: AXUIElement, scWindow: SCWindow) -> Bool {
+        guard let position = windowPosition(for: axWindow),
+              let size = windowSizeValue(for: axWindow) else {
+            return false
+        }
+
+        let axFrame = CGRect(origin: position, size: size)
+        let scFrame = scWindow.frame
+        let tolerance: CGFloat = 2
+
+        let framesMatch =
+            abs(axFrame.origin.x - scFrame.origin.x) <= tolerance
+            && abs(axFrame.origin.y - scFrame.origin.y) <= tolerance
+            && abs(axFrame.width - scFrame.width) <= tolerance
+            && abs(axFrame.height - scFrame.height) <= tolerance
+        guard framesMatch else { return false }
+
+        let scTitle = (scWindow.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !scTitle.isEmpty else { return true }
+
+        let axTitle = (copyAttribute(kAXTitleAttribute, from: axWindow) as String?)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return axTitle.isEmpty || axTitle == scTitle
+    }
+
+    private static func windowPosition(for window: AXUIElement) -> CGPoint? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(window, kAXPositionAttribute as CFString, &value) == .success,
+              let value,
+              CFGetTypeID(value) == AXValueGetTypeID() else {
+            return nil
+        }
+        var point = CGPoint.zero
+        guard AXValueGetValue(value as! AXValue, .cgPoint, &point) else { return nil }
+        return point
+    }
+
+    private static func windowSizeValue(for window: AXUIElement) -> CGSize? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(window, kAXSizeAttribute as CFString, &value) == .success,
+              let value,
+              CFGetTypeID(value) == AXValueGetTypeID() else {
+            return nil
+        }
+        var size = CGSize.zero
+        guard AXValueGetValue(value as! AXValue, .cgSize, &size) else { return nil }
+        return size
     }
 
     private static func frontmostWindow(targetPID: pid_t?) throws -> AXUIElement {
@@ -133,6 +212,10 @@ enum WindowResizer {
             if AXValueGetValue(value as! AXValue, .cgSize, &size) {
                 return size as? T
             }
+        }
+
+        if T.self == String.self, let string = value as? String {
+            return string as? T
         }
 
         return nil

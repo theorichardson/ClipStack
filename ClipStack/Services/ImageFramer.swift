@@ -29,9 +29,14 @@ enum ImageFramer {
         /// shape — sit inside a laptop-shaped frame.
         var aspectRatio: CGFloat = 16.0 / 10.0
         var screenshotCornerRadius: CGFloat = 16
+        /// Soft ambient shadow — the broad falloff under a floating window.
         var screenshotShadowOpacity: CGFloat = 0.35
         var screenshotShadowRadius: CGFloat = 32
-        var screenshotShadowOffset: CGSize = CGSize(width: 0, height: -10)
+        var screenshotShadowOffset: CGSize = CGSize(width: 0, height: -8)
+        /// Tight contact shadow — the crisp edge macOS windows sit on.
+        var screenshotContactShadowOpacity: CGFloat = 0.22
+        var screenshotContactShadowRadius: CGFloat = 4
+        var screenshotContactShadowOffset: CGSize = CGSize(width: 0, height: -2)
     }
 
     /// Render `sourceURL` inside `frame` and write a new PNG next to the
@@ -85,20 +90,13 @@ enum ImageFramer {
             context.draw(wallpaperCG, in: CGRect(origin: .zero, size: canvasSize))
         }
 
-        // 2. Screenshot — centered, drawn rounded with a soft shadow so it
-        //    feels inset inside the laptop-shaped wallpaper frame.
+        // 2. Screenshot — centered, rounded, with a macOS-style drop shadow so
+        //    it reads as a floating window on the backdrop.
         let screenshotRect = CGRect(
             x: ((canvasWidth - screenshotWidth) / 2).rounded(),
             y: ((canvasHeight - screenshotHeight) / 2).rounded(),
             width: screenshotWidth,
             height: screenshotHeight
-        )
-
-        context.saveGState()
-        context.setShadow(
-            offset: options.screenshotShadowOffset,
-            blur: options.screenshotShadowRadius,
-            color: NSColor(white: 0, alpha: options.screenshotShadowOpacity).cgColor
         )
 
         let cornerPath = CGPath(
@@ -107,6 +105,34 @@ enum ImageFramer {
             cornerHeight: options.screenshotCornerRadius,
             transform: nil
         )
+
+        // Shadows must come from a filled path. Clipping before draw() suppresses
+        // the shadow entirely, so paint the silhouette first, then the image.
+        let shadowSilhouette = NSColor.white.cgColor
+
+        context.saveGState()
+        context.setShadow(
+            offset: options.screenshotContactShadowOffset,
+            blur: options.screenshotContactShadowRadius,
+            color: NSColor(white: 0, alpha: options.screenshotContactShadowOpacity).cgColor
+        )
+        context.addPath(cornerPath)
+        context.setFillColor(shadowSilhouette)
+        context.fillPath()
+        context.restoreGState()
+
+        context.saveGState()
+        context.setShadow(
+            offset: options.screenshotShadowOffset,
+            blur: options.screenshotShadowRadius,
+            color: NSColor(white: 0, alpha: options.screenshotShadowOpacity).cgColor
+        )
+        context.addPath(cornerPath)
+        context.setFillColor(shadowSilhouette)
+        context.fillPath()
+        context.restoreGState()
+
+        context.saveGState()
         context.addPath(cornerPath)
         context.clip()
         context.draw(sourceCG, in: screenshotRect)

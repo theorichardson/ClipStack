@@ -21,7 +21,8 @@ final class WindowPickerOverlayController {
     private var ownOverlayIDs: Set<CGWindowID> = []
     private var localKeyMonitor: Any?
     private var globalKeyMonitor: Any?
-    private var highlightedWindow: SCWindow?
+    private var globalMouseMonitor: Any?
+    private var usedRegularActivationPolicy = false
     private var completion: ((Result) -> Void)?
 
     private init() {}
@@ -51,6 +52,7 @@ final class WindowPickerOverlayController {
 
     private func start(with windows: [SCWindow]) {
         availableWindows = windows
+        promoteForKeyboardInput()
 
         for screen in NSScreen.screens {
             let view = WindowPickerOverlayView(
@@ -98,48 +100,80 @@ final class WindowPickerOverlayController {
         }
 
         NSCursor.crosshair.set()
-        NSApp.activate(ignoringOtherApps: true)
 
+        installKeyMonitors()
+        installMouseMonitor()
+        // Prime the highlight using the current mouse position.
+        handleHover(globalPoint: NSEvent.mouseLocation)
+        focusActiveOverlay()
+    }
+
+    private func promoteForKeyboardInput() {
+        // LSUIElement apps cannot reliably become key without a regular
+        // activation policy (same approach as SettingsWindowController).
+        if NSApp.activationPolicy() == .accessory {
+            NSApp.setActivationPolicy(.regular)
+            usedRegularActivationPolicy = true
+        }
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func focusActiveOverlay() {
         let cursor = NSEvent.mouseLocation
         let activeOverlay = overlays.first(where: { $0.window.screen?.frame.contains(cursor) ?? false })
             ?? overlays.first
         activeOverlay?.window.makeKeyAndOrderFront(nil)
-        if let activeOverlay {
-            activeOverlay.window.makeFirstResponder(activeOverlay.view)
+        if let view = activeOverlay?.view {
+            activeOverlay?.window.makeFirstResponder(view)
         }
-
-        installKeyMonitors()
-        // Prime the highlight using the current mouse position.
-        handleHover(globalPoint: NSEvent.mouseLocation)
     }
 
     private func installKeyMonitors() {
-        // LSUIElement menu-bar apps never become the active app, so a local
-        // key monitor alone is unreliable. Mirror RegionSelectorController's
-        // key-window path, and add a global monitor as backup (same pattern
-        // as StatusBarPopoverController's outside-click dismissal).
+        // LSUIElement menu-bar apps never become the active app reliably, so
+        // mirror RegionSelectorController: local monitor on the key window,
+        // plus a global monitor when Accessibility allows it.
         globalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
-            guard event.keyCode == 53 else { return }
-            Task { @MainActor in
-                self?.finish(with: .cancelled)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                _ = self.handleKeyDown(keyCode: event.keyCode)
             }
         }
 
         localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { [weak self] event in
             guard let self else { return event }
-            switch event.keyCode {
-            case 53:
-                self.finish(with: .cancelled)
+            if self.handleKeyDown(keyCode: event.keyCode) {
                 return nil
-            case 36, 76:
-                self.confirmCapture()
-                return nil
-            case 15:
-                self.confirmRecord()
-                return nil
-            default:
-                return event
             }
+            return event
+        }
+    }
+
+    private func installMouseMonitor() {
+        // LSUIElement apps are usually inactive while the picker is up, so
+        // local mouse-moved events are unreliable. Track the cursor globally
+        // (same pattern as CaptureToastController).
+        globalMouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved]) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, !self.overlays.isEmpty else { return }
+                self.handleHover(globalPoint: NSEvent.mouseLocation)
+            }
+        }
+    }
+
+    @discardableResult
+    private func handleKeyDown(keyCode: UInt16) -> Bool {
+        switch keyCode {
+        case 53:
+            finish(with: .cancelled)
+            return true
+        case 36, 76:
+            confirmCapture()
+            return true
+        case 15:
+            confirmRecord()
+            return true
+        default:
+            return false
         }
     }
 
@@ -148,7 +182,6 @@ final class WindowPickerOverlayController {
     fileprivate func handleHover(globalPoint: CGPoint) {
         let quartzPoint = ScreenCoordinates.cocoaToQuartz(globalPoint)
         let topWindow = topmostWindow(at: quartzPoint)
-        highlightedWindow = topWindow
         updateHighlight(for: topWindow)
 
         for overlay in overlays {
@@ -224,14 +257,19 @@ final class WindowPickerOverlayController {
         return ids
     }
 
+    private func windowUnderCursor() -> SCWindow? {
+        let quartzPoint = ScreenCoordinates.cocoaToQuartz(NSEvent.mouseLocation)
+        return topmostWindow(at: quartzPoint)
+    }
+
     private func confirmCapture() {
-        guard let highlightedWindow else { return }
-        finish(with: .capture(highlightedWindow))
+        guard let chosen = windowUnderCursor() else { return }
+        finish(with: .capture(chosen))
     }
 
     private func confirmRecord() {
-        guard let highlightedWindow else { return }
-        finish(with: .record(highlightedWindow))
+        guard let chosen = windowUnderCursor() else { return }
+        finish(with: .record(chosen))
     }
 
     private func topmostWindow(at quartzPoint: CGPoint) -> SCWindow? {
@@ -297,18 +335,32 @@ final class WindowPickerOverlayController {
             NSEvent.removeMonitor(monitor)
             localKeyMonitor = nil
         }
+        if let monitor = globalMouseMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalMouseMonitor = nil
+        }
         for overlay in overlays { overlay.window.orderOut(nil) }
         highlightWindow?.orderOut(nil)
         highlightWindow = nil
         overlays.removeAll()
         ownOverlayIDs.removeAll()
         availableWindows.removeAll()
-        highlightedWindow = nil
         NSCursor.arrow.set()
+        restoreAccessoryActivationPolicyIfNeeded()
 
         let callback = completion
         completion = nil
         callback?(result)
+    }
+
+    private func restoreAccessoryActivationPolicyIfNeeded() {
+        guard usedRegularActivationPolicy else { return }
+        usedRegularActivationPolicy = false
+        let hasVisibleWindows = NSApp.windows.contains { window in
+            window.isVisible && !window.isSheet
+        }
+        guard !hasVisibleWindows else { return }
+        NSApp.setActivationPolicy(.accessory)
     }
 
     private func presentError(_ error: Error) {

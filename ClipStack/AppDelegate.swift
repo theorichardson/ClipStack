@@ -809,6 +809,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func startWindowRecording(window: SCWindow, name: String) async {
+        WindowResizer.activateAndFocus(window: window)
         do {
             try await ScreenCaptureService.shared.startRecording(window: window, name: name)
             rebuildMenu()
