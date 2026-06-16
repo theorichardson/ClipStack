@@ -22,7 +22,6 @@ final class WindowPickerOverlayController {
     private var localKeyMonitor: Any?
     private var globalKeyMonitor: Any?
     private var globalMouseMonitor: Any?
-    private var usedRegularActivationPolicy = false
     private var completion: ((Result) -> Void)?
 
     private init() {}
@@ -52,7 +51,6 @@ final class WindowPickerOverlayController {
 
     private func start(with windows: [SCWindow]) {
         availableWindows = windows
-        promoteForKeyboardInput()
 
         for screen in NSScreen.screens {
             let view = WindowPickerOverlayView(
@@ -108,17 +106,8 @@ final class WindowPickerOverlayController {
         focusActiveOverlay()
     }
 
-    private func promoteForKeyboardInput() {
-        // LSUIElement apps cannot reliably become key without a regular
-        // activation policy (same approach as SettingsWindowController).
-        if NSApp.activationPolicy() == .accessory {
-            NSApp.setActivationPolicy(.regular)
-            usedRegularActivationPolicy = true
-        }
-        NSApp.activate(ignoringOtherApps: true)
-    }
-
     private func focusActiveOverlay() {
+        NSApp.activate(ignoringOtherApps: true)
         let cursor = NSEvent.mouseLocation
         let activeOverlay = overlays.first(where: { $0.window.screen?.frame.contains(cursor) ?? false })
             ?? overlays.first
@@ -346,21 +335,10 @@ final class WindowPickerOverlayController {
         ownOverlayIDs.removeAll()
         availableWindows.removeAll()
         NSCursor.arrow.set()
-        restoreAccessoryActivationPolicyIfNeeded()
 
         let callback = completion
         completion = nil
         callback?(result)
-    }
-
-    private func restoreAccessoryActivationPolicyIfNeeded() {
-        guard usedRegularActivationPolicy else { return }
-        usedRegularActivationPolicy = false
-        let hasVisibleWindows = NSApp.windows.contains { window in
-            window.isVisible && !window.isSheet
-        }
-        guard !hasVisibleWindows else { return }
-        NSApp.setActivationPolicy(.accessory)
     }
 
     private func presentError(_ error: Error) {

@@ -38,23 +38,13 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     private func present(_ window: NSWindow) {
-        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
-    }
-
-    private func restoreAccessoryPolicyIfNeeded() {
-        let hasVisibleWindows = NSApp.windows.contains { window in
-            window.isVisible && !window.isSheet
-        }
-        guard !hasVisibleWindows else { return }
-        NSApp.setActivationPolicy(.accessory)
     }
 
     nonisolated func windowWillClose(_ notification: Notification) {
         Task { @MainActor in
             self.window = nil
-            self.restoreAccessoryPolicyIfNeeded()
         }
     }
 }
@@ -130,16 +120,6 @@ private struct WidthSettingsPane: View {
         Form {
             Section("Save & Apply") {
                 KeyboardShortcuts.Recorder("Save Frontmost Width:", name: .saveWidth)
-            }
-
-            Section {
-                ForEach(Array(HotKeyManager.applyPresetNames.enumerated()), id: \.offset) { index, name in
-                    KeyboardShortcuts.Recorder("Apply Preset \(index + 1):", name: name)
-                }
-            } header: {
-                Text("Apply Width Presets")
-            } footer: {
-                Text("Width preset slots map to the order shown in the menu bar.")
             }
         }
         .formStyle(.grouped)

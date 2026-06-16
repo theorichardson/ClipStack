@@ -1,6 +1,28 @@
 import AppKit
 import SwiftUI
 
+private enum KeyboardPanelFrameStore {
+    private static let widthKey = "keyboardPanelWidth"
+    private static let heightKey = "keyboardPanelHeight"
+
+    static let defaultSize = NSSize(width: 580, height: 420)
+    static let minSize = NSSize(width: 420, height: 320)
+
+    static func savedSize() -> NSSize {
+        let width = UserDefaults.standard.object(forKey: widthKey) as? Double ?? defaultSize.width
+        let height = UserDefaults.standard.object(forKey: heightKey) as? Double ?? defaultSize.height
+        return NSSize(
+            width: max(minSize.width, width),
+            height: max(minSize.height, height)
+        )
+    }
+
+    static func save(_ size: NSSize) {
+        UserDefaults.standard.set(max(minSize.width, size.width), forKey: widthKey)
+        UserDefaults.standard.set(max(minSize.height, size.height), forKey: heightKey)
+    }
+}
+
 @MainActor
 final class PanelController: NSObject {
     static let shared = PanelController()
@@ -59,14 +81,16 @@ final class PanelController: NSObject {
     }
 
     private func buildPanel() {
+        let size = KeyboardPanelFrameStore.savedSize()
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 580, height: 420),
-            styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
+            contentRect: NSRect(x: 0, y: 0, width: size.width, height: size.height),
+            styleMask: [.titled, .closable, .resizable, .fullSizeContentView, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
 
         panel.title = "ClipStack"
+        panel.minSize = KeyboardPanelFrameStore.minSize
         panel.titlebarAppearsTransparent = true
         panel.titleVisibility = .hidden
         panel.titlebarSeparatorStyle = .none
@@ -133,6 +157,13 @@ final class PanelController: NSObject {
 }
 
 extension PanelController: NSWindowDelegate {
+    nonisolated func windowDidResize(_ notification: Notification) {
+        Task { @MainActor in
+            guard let panel = notification.object as? NSPanel, panel === self.panel else { return }
+            KeyboardPanelFrameStore.save(panel.frame.size)
+        }
+    }
+
     nonisolated func windowDidResignKey(_ notification: Notification) {
         Task { @MainActor in
             hide()

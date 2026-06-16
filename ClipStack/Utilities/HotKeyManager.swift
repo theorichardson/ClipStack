@@ -13,24 +13,10 @@ extension KeyboardShortcuts.Name {
     static let captureWindow = Self("captureWindow", default: .init(.c, modifiers: [.command, .shift, .option]))
     static let recordWindow = Self("recordWindow", default: .init(.w, modifiers: [.command, .shift, .option]))
     static let stopRecording = Self("stopRecording", default: .init(.period, modifiers: [.command, .shift]))
-    static let applyPreset1 = Self("applyPreset1", default: .init(.one, modifiers: [.command, .shift]))
-    static let applyPreset2 = Self("applyPreset2", default: .init(.two, modifiers: [.command, .shift]))
-    static let applyPreset3 = Self("applyPreset3", default: .init(.three, modifiers: [.command, .shift]))
-    static let applyPreset4 = Self("applyPreset4", default: .init(.four, modifiers: [.command, .shift]))
-    static let applyPreset5 = Self("applyPreset5", default: .init(.five, modifiers: [.command, .shift]))
-    static let applyPreset6 = Self("applyPreset6", default: .init(.six, modifiers: [.command, .shift]))
-    static let applyPreset7 = Self("applyPreset7", default: .init(.seven, modifiers: [.command, .shift]))
-    static let applyPreset8 = Self("applyPreset8", default: .init(.eight, modifiers: [.command, .shift]))
-    static let applyPreset9 = Self("applyPreset9", default: .init(.nine, modifiers: [.command, .shift]))
 }
 
 @MainActor
 enum HotKeyManager {
-    static let applyPresetNames: [KeyboardShortcuts.Name] = [
-        .applyPreset1, .applyPreset2, .applyPreset3, .applyPreset4, .applyPreset5,
-        .applyPreset6, .applyPreset7, .applyPreset8, .applyPreset9,
-    ]
-
     static func register(appDelegate: AppDelegate) {
         migrateLegacyClipStackShortcutIfNeeded()
 
@@ -73,14 +59,6 @@ enum HotKeyManager {
         KeyboardShortcuts.onKeyUp(for: .stopRecording) {
             Task { @MainActor in
                 appDelegate.stopRecordingFromShortcut()
-            }
-        }
-
-        for (index, name) in applyPresetNames.enumerated() {
-            KeyboardShortcuts.onKeyUp(for: name) {
-                Task { @MainActor in
-                    appDelegate.applyPreset(at: index)
-                }
             }
         }
     }

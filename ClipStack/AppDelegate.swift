@@ -57,6 +57,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // LSUIElement menu-bar app — never show a Dock icon.
+        NSApp.setActivationPolicy(.accessory)
+
         bootstrapClipboardStack()
         LaunchAtLoginManager.syncWithPreference()
 
@@ -351,16 +354,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             emptyItem.isEnabled = false
             menu.addItem(emptyItem)
         } else {
-            for (index, preset) in presets.enumerated() {
+            for preset in presets {
                 let title = "\(preset.name) (\(Int(preset.width)) px)"
                 let item = NSMenuItem(title: title, action: #selector(applyPreset(_:)), keyEquivalent: "")
                 item.target = self
                 item.representedObject = preset.id
-
-                if index < 9 {
-                    item.keyEquivalent = String(index + 1)
-                    item.keyEquivalentModifierMask = [.command, .shift]
-                }
 
                 let submenu = NSMenu()
                 submenu.addItem(makeActionItem(
@@ -432,15 +430,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             empty.isEnabled = false
             menu.addItem(empty)
         } else {
-            for (index, preset) in presets.enumerated() {
+            for preset in presets {
                 let title = "\(preset.name) (\(Int(preset.width)) px)"
                 let item = NSMenuItem(title: title, action: #selector(applyPreset(_:)), keyEquivalent: "")
                 item.target = self
                 item.representedObject = preset.id
-                if index < 9 {
-                    item.keyEquivalent = String(index + 1)
-                    item.keyEquivalentModifierMask = [.command, .shift]
-                }
 
                 let submenu = NSMenu()
                 submenu.addItem(makeActionItem(
@@ -938,11 +932,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func applyPreset(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? UUID else { return }
         applyPreset(id: id)
-    }
-
-    func applyPreset(at index: Int) {
-        guard let preset = PresetStore.shared.preset(at: index) else { return }
-        applyPreset(id: preset.id)
     }
 
     private func applyPreset(id: UUID) {
