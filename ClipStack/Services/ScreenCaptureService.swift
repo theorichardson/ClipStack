@@ -266,7 +266,7 @@ final class ScreenCaptureService {
         let configuration = SCStreamConfiguration()
         configuration.width = Int(window.frame.width * scale)
         configuration.height = Int(window.frame.height * scale)
-        configuration.showsCursor = true
+        configuration.showsCursor = false
         configuration.scalesToFit = true
 
         do {
@@ -292,7 +292,7 @@ final class ScreenCaptureService {
         configuration.sourceRect = sourceRect
         configuration.width = Int(region.width * scale)
         configuration.height = Int(region.height * scale)
-        configuration.showsCursor = true
+        configuration.showsCursor = false
         configuration.scalesToFit = false
 
         do {
